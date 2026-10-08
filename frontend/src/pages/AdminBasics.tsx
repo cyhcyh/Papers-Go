@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react'
 import {Check,Copy,ExternalLink,BookOpen,Globe,Shield,FileText,ScrollText,Upload,Link as LinkIcon,type LucideIcon} from 'lucide-react'
 import {api} from '../api'
 import {useLoad} from '../hooks/useLoad'
+import {copyText} from '../clipboard'
 import {useApp} from '../context'
 import {Loading,ErrorBox} from '../components/Common'
 import type {Site} from '../site'
@@ -39,7 +40,7 @@ export function AdminBasics(){
     <section className="panel basic-entry"><SettingHeading icon={Shield} title="管理员安全入口" description="设置管理后台的访问路径。"/>
      <label>入口路径<input required minLength={7} maxLength={81} pattern="/[A-Za-z0-9][A-Za-z0-9_-]{5,79}" value={draft.admin_path} onChange={e=>setDraft({...draft,admin_path:e.target.value})}/></label>
      <p className="basic-help">使用 / 开头的 6～80 位字母、数字、下划线或短横线。</p>
-     <div className="basic-entry-address"><strong>当前入口</strong><div><LinkIcon size={16}/><code>{address}</code></div><nav aria-label="当前管理员入口操作"><button type="button" onClick={()=>navigator.clipboard.writeText(address).then(()=>toast('入口地址已复制')).catch(()=>toast('请手动复制入口地址'))}><Copy size={14}/>复制</button><a href={address} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/>打开</a></nav></div>
+     <div className="basic-entry-address"><strong>当前入口</strong><div><LinkIcon size={16}/><code>{address}</code></div><nav aria-label="当前管理员入口操作"><button type="button" onClick={()=>copyText(address).then(()=>toast('入口地址已复制')).catch(()=>toast('请手动复制入口地址'))}><Copy size={14}/>复制</button><a href={address} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/>打开</a></nav></div>
      <p className="basic-help">入口仅在后台展示。更改后旧地址失效，保存后自动跳转到新入口。</p>
     </section>
    </div>

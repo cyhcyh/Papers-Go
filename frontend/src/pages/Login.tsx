@@ -2,6 +2,7 @@ import {useState,useEffect} from 'react'
 import {Link,useNavigate,useLocation} from 'react-router-dom'
 import {ArrowRight,FileText,UserRound,LockKeyhole,Search,Sparkles} from 'lucide-react'
 import {api,storeAuth,type Auth} from '../api'
+import {copyText} from '../clipboard'
 import {useApp} from '../context'
 import {SiteBrand,useSite} from '../site'
 import {SystemInfo} from '../components/SystemInfo'
@@ -48,5 +49,5 @@ export function Login({embedded=false,admin=false,onSuccess}:{embedded?:boolean;
    }{!embedded&&<Link className="guest-return" to="/">先随便看看 →</Link>}
   </div>
   {admin&&!embedded&&<SystemInfo className="auth-system-info-top"/>}
- </div>{adminEntry&&<AdminRegistrationNotice entry={adminEntry} onClose={finishRegistration} onCopy={()=>navigator.clipboard.writeText(window.location.origin+adminEntry).then(()=>toast('安全入口已复制')).catch(()=>toast('请手动复制入口地址'))}/>}</>
+ </div>{adminEntry&&<AdminRegistrationNotice entry={adminEntry} onClose={finishRegistration} onCopy={()=>copyText(window.location.origin+adminEntry).then(()=>toast('安全入口已复制')).catch(()=>toast('请手动复制入口地址'))}/>}</>
 }

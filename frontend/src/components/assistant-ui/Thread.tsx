@@ -2,16 +2,24 @@
 // https://github.com/assistant-ui/assistant-ui/blob/main/packages/ui/src/components/react/assistant-ui/elements/thread.aui.tsx
 // Preserve the upstream viewport, user bubble, action bar and composer layout.
 // Math rendering and administrator-confirmed research actions use app slots.
-import {ThreadPrimitive,MessagePrimitive,ComposerPrimitive,ActionBarPrimitive,type TextMessagePartProps} from '@assistant-ui/react'
+import {ThreadPrimitive,MessagePrimitive,ComposerPrimitive,ActionBarPrimitive,useAui,type TextMessagePartProps} from '@assistant-ui/react'
 import {ArrowUp,ArrowDown,ArrowRight,Square,Copy,FileText,ChartNoAxesCombined,Sparkles,CircleHelp} from 'lucide-react'
 import type {ReactNode} from 'react'
 import {ChatContent} from '../ChatContent'
 import {ConversationGraphic} from '../PageContentUI'
 import type {Proposal,SkillEvent} from '../../types'
+import {copyText} from '../../clipboard'
+import {useApp} from '../../context'
 import './thread.css'
 
 function MarkdownText({text}:TextMessagePartProps){return <ChatContent text={text}/>}
 const parts={Text:MarkdownText}
+
+function CopyReply(){
+ const aui=useAui(),{toast}=useApp()
+ const copy=()=>void copyText(aui.message.getCopyText()).then(()=>toast('已复制')).catch(()=>toast('复制失败，请手动复制'))
+ return <button type="button" className="aui-icon-button" aria-label="复制回复" title="复制回复" onClick={copy}><Copy size={16}/></button>
+}
 
 export function ResearchThread({empty,running,error,context,proposal,skillEvent}:{empty:boolean;running:boolean;error:string;context:ReactNode;proposal:(p:Proposal)=>ReactNode;skillEvent?:(event:SkillEvent)=>ReactNode}){
  return <ThreadPrimitive.Root className="aui-root aui-thread-root">
@@ -30,7 +38,7 @@ export function ResearchThread({empty,running,error,context,proposal,skillEvent}
      return <MessagePrimitive.Root className={message.role==='user'?'aui-user-message-root':'aui-assistant-message-root'} data-role={message.role}>
       {message.role==='assistant'&&<span className="aui-assistant-mark" aria-hidden="true"><Sparkles size={16}/></span>}
       <div className={message.role==='user'?'aui-user-message-content':'aui-assistant-message-content'}><MessagePrimitive.Parts components={parts}/>{proposals?.map(proposal)}{skillEvents?.map(event=>skillEvent?.(event))}{!hasText&&isRunning&&<div className="aui-typing" role="status" aria-label="正在整理回答"><span/><span/><span/></div>}</div>
-      {message.role==='assistant'&&hasText&&<ActionBarPrimitive.Root className="aui-assistant-action-bar" hideWhenRunning autohide="not-last"><ActionBarPrimitive.Copy className="aui-icon-button" aria-label="复制回复" title="复制回复"><Copy size={16}/></ActionBarPrimitive.Copy></ActionBarPrimitive.Root>}
+      {message.role==='assistant'&&hasText&&<ActionBarPrimitive.Root className="aui-assistant-action-bar" hideWhenRunning autohide="not-last"><CopyReply/></ActionBarPrimitive.Root>}
      </MessagePrimitive.Root>
     }}</ThreadPrimitive.Messages>
    </div>

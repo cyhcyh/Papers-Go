@@ -3,6 +3,8 @@ import '../model-settings.css'
 const SkillsSettings=lazy(()=>import('./SkillsSettings').then(m=>({default:m.SkillsSettings})))
 import {Plus,RefreshCw,Check,Search,LayoutGrid,List,SlidersHorizontal,Cloud,Monitor,FileText,BookOpen,Brain,Database,Tags,ShieldCheck,Languages,TrendingUp,ClipboardCheck,MessageSquare,ScanText,BookMarked,UserRound,History,Info,Eye,EyeOff,Box} from 'lucide-react'
 import {api} from '../api'
+import {randomId} from '../randomId'
+import {copyText} from '../clipboard'
 import {useLoad} from '../hooks/useLoad'
 import {useApp} from '../context'
 import {Loading,ErrorBox} from './Common'
@@ -120,7 +122,7 @@ export function ModelSettings(){
  const pending=draft.pending_rebuild
 
  const openConnection=(connection?:Connection,advanced=false)=>{
-  setError('');setConnectionRebuild(false);setShowKey(false);setConnectionEditor({value:connection?{...connection}:{id:'connection_'+crypto.randomUUID().replaceAll('-',''),credential_revision:crypto.randomUUID().replaceAll('-',''),name:'新连接',kind:'cloud',base_url:'',configured:false,api_key:''},isNew:!connection,advanced})
+  setError('');setConnectionRebuild(false);setShowKey(false);setConnectionEditor({value:connection?{...connection}:{id:'connection_'+randomId(),credential_revision:randomId(),name:'新连接',kind:'cloud',base_url:'',configured:false,api_key:''},isNew:!connection,advanced})
  }
  const editConnection=(patch:Partial<Connection>)=>setConnectionEditor(editor=>editor&&({...editor,value:{...editor.value,...patch}}))
  const applyConnection=async()=>{
@@ -128,7 +130,7 @@ export function ModelSettings(){
   const value=connectionEditor.value
   let candidate:Config
   if(connectionEditor.isNew)candidate={...draft,connections:[...draft.connections,value]}
-  else{const old=draft.connections.find(c=>c.id===value.id)!;const patch=Object.fromEntries(Object.entries(value).filter(([key,value])=>JSON.stringify(value)!==JSON.stringify(old[key as keyof Connection]))) as Partial<Connection>;const changedCredentials='api_key' in patch||'clear_key' in patch||'kind' in patch;const changedCatalog=changedCredentials||'base_url' in patch;candidate={...draft,connections:draft.connections.map(c=>c.id===value.id?{...c,...patch,...(changedCredentials?{credential_revision:crypto.randomUUID().replaceAll('-','')}:{}),...(changedCatalog?{catalog:undefined}:{})}:c)}}
+  else{const old=draft.connections.find(c=>c.id===value.id)!;const patch=Object.fromEntries(Object.entries(value).filter(([key,value])=>JSON.stringify(value)!==JSON.stringify(old[key as keyof Connection]))) as Partial<Connection>;const changedCredentials='api_key' in patch||'clear_key' in patch||'kind' in patch;const changedCatalog=changedCredentials||'base_url' in patch;candidate={...draft,connections:draft.connections.map(c=>c.id===value.id?{...c,...patch,...(changedCredentials?{credential_revision:randomId()}:{}),...(changedCatalog?{catalog:undefined}:{})}:c)}}
   if(await save(candidate,signature(candidate)!==signature(result.data||draft)&&connectionRebuild)){setStatuses(s=>{const next={...s};delete next[value.id];return next});setConnectionEditor(null)}
  }
  const openFeature=(id:string,mode:'model'|'advanced')=>{
@@ -149,7 +151,7 @@ export function ModelSettings(){
  const editingDimensions=editingConnection?.catalog?.models.find(m=>m.id===featureEditor?.route.primary.model)?.embedding_dimensions||[]
  const featureNeedsRebuild=!!featureEditor&&featureEditor.id==='embedding'&&signature({...draft,routes:{...draft.routes,embedding:featureEditor.route},embedding_dim:featureEditor.embedding_dim})!==signature(result.data||draft)
  const connectionNeedsRebuild=!!connectionEditor&&signature({...draft,connections:connectionEditor.isNew?[...draft.connections,connectionEditor.value]:draft.connections.map(c=>c.id===connectionEditor.value.id?connectionEditor.value:c)})!==signature(result.data||draft)
- const copy=(value:string)=>void navigator.clipboard.writeText(value).then(()=>toast('已复制')).catch(()=>toast('复制失败，请手动复制'))
+ const copy=(value:string)=>void copyText(value).then(()=>toast('已复制')).catch(()=>toast('复制失败，请手动复制'))
  const groups=[
   {title:'文本理解',description:'论文理解、分类、质量评估与方向趋势',icon:FileText,ids:['classify','brief','quality','trend_report','audit']},
   {title:'研究生成',description:'智能助手、论文精读与深度解析',icon:BookOpen,ids:['chat','reading_l2','reading_l3']},
