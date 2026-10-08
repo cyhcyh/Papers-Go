@@ -1,0 +1,13 @@
+.trend-markdown{min-width:0;overflow-wrap:anywhere}
+.trend-markdown .chat-content p,.trend-markdown .chat-content li{font-size:13px;line-height:1.9;color:var(--content-muted,var(--secondary))}
+.trend-markdown .chat-content p{margin:0}
+.trend-markdown .chat-content p+p{margin-top:10px}
+.trend-markdown .chat-content ul,.trend-markdown .chat-content ol{margin:10px 0;padding-left:22px}
+.trend-markdown .chat-content li+li{margin-top:10px}
+.trend-markdown .chat-content strong{display:inline;font-size:inherit;font-weight:600;color:var(--text)}
+.trend-markdown .chat-content>:first-child{margin-top:0}
+.trend-markdown .chat-content>:last-child{margin-bottom:0}
+.trend-markdown-compact .chat-content p,.trend-markdown-compact .chat-content li{line-height:1.7}
+.trend-markdown-compact .chat-content p+p,.trend-markdown-compact .chat-content li+li{margin-top:5px}
+.trend-markdown-compact .chat-content ul,.trend-markdown-compact .chat-content ol{margin:5px 0}
+.direction-short .trend-markdown strong{display:inline;font-size:inherit;line-height:inherit}

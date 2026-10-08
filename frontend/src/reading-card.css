@@ -1,0 +1,47 @@
+/* Only the reading dialog and its shared reading content; ordinary paper cards are untouched. */
+.modal-frame:has(>.reading-dialog){width:820px}
+.modal-frame>.modal.reading-dialog{border:1px solid color-mix(in srgb,#3568ff 8%,var(--border));border-radius:22px;padding:26px;max-height:min(85dvh,calc(100dvh - 64px));scrollbar-width:none;font-family:"Microsoft YaHei","PingFang SC","Noto Sans SC",system-ui,sans-serif}
+.reading-dialog::-webkit-scrollbar{display:none}
+.reading-dialog .modal-header{margin-bottom:22px}
+.reading-dialog .modal-header h2{display:flex;gap:10px;align-items:center;font-size:17px;font-weight:650;color:var(--text);line-height:1.5}
+.reading-dialog .modal-header .content-icon{width:32px;height:32px;border-radius:10px}
+.reading-dialog .reading-title{padding:0;border:0;font-family:inherit;font-size:21px;font-weight:650;line-height:1.5;margin:0 0 6px;overflow-wrap:anywhere}
+.reading-dialog .original-title{font-size:14px;line-height:1.65;margin:0 0 10px;color:var(--secondary)}
+.reading-dialog>.paper-authors{font-size:12px;line-height:1.7;margin-top:10px;color:var(--secondary);-webkit-line-clamp:unset}
+.reading-dialog>.hint{font-size:11px;line-height:1.7;margin:8px 0 18px;color:var(--muted)}
+.reading-dialog .paper-detail-abstract{position:relative;padding:16px;background:var(--blue-soft);border-radius:12px;margin:0 0 18px;font-size:13px;color:var(--secondary)}
+.reading-dialog .paper-detail-abstract h3{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;line-height:1.5;margin:0 0 10px;color:var(--text)}
+.reading-dialog .paper-detail-abstract h3 svg{color:var(--accent);flex-shrink:0}
+.reading-dialog .paper-detail-abstract p{font-size:13px;line-height:1.8;margin:0}
+.reading-dialog .detail-source{font-size:12px;margin-top:12px;line-height:1.7}
+.reading-dialog>.primary{display:inline-flex;gap:8px;align-items:center;background:#3568ff;border-color:#3568ff;border-radius:11px;font-size:13px;min-height:40px}
+.reading-dialog>button.reading-generate-action{display:flex;width:fit-content;max-width:100%;margin:0 auto}
+.reading-content .reading-meta{justify-content:flex-start;gap:10px;font-size:12px;line-height:1.5;margin:20px 0 14px}
+.reading-content .reading-meta .tag{border-radius:9px;padding:6px 10px;font-size:11px}
+.reading-content .reading-fulltext-source{font-size:12px;margin:10px 0 18px}
+.reading-content .reading-question{padding:20px 0;border-color:color-mix(in srgb,#3568ff 7%,var(--border));margin:0}
+.reading-content .reading-question h3{display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600;line-height:1.65;margin:0 0 9px;color:var(--text)}
+.reading-content .reading-question-number{display:flex;align-items:center;justify-content:center;width:34px;height:34px;flex-shrink:0;border-radius:10px;background:var(--blue-soft);color:var(--accent);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.reading-content .reading-question>.chat-content{margin-left:46px}
+.reading-content .reading-question .chat-content p,.reading-content .reading-question .chat-content li{font-size:14px;line-height:1.85;color:var(--secondary)}
+.reading-content .reading-question .chat-content h4{font-size:14px;line-height:1.7;color:var(--text)}
+.reading-content .reading-evidence{border-color:color-mix(in srgb,#3568ff 8%,var(--border));border-radius:11px;padding:13px 15px;margin-top:12px;font-size:13px}
+.reading-content .reading-evidence summary{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;line-height:1.7;list-style:none}
+.reading-content .reading-evidence summary::-webkit-details-marker{display:none}
+.reading-content .reading-evidence summary:after{content:'›';margin-left:auto;flex-shrink:0;font-size:19px;line-height:1}
+.reading-content .reading-evidence[open] summary:after{transform:rotate(90deg)}
+.reading-content .reading-evidence summary svg{flex-shrink:0;color:var(--secondary)}
+.reading-content .reading-evidence .evidence{font-size:13px;line-height:1.8}
+.reading-content .reading-limitations{list-style:decimal outside;margin:12px 0 0;padding-left:24px;line-height:1.8;color:var(--secondary)}
+.reading-content .reading-limitations li{padding-left:4px;overflow-wrap:anywhere}
+.reading-content .reading-limitations li+li{margin-top:8px}
+.reading-content .reading-limitations li::marker{color:var(--accent);font-variant-numeric:tabular-nums}
+.reading-dialog .reading-generating{padding:15px 16px;border:1px solid color-mix(in srgb,#3568ff 8%,var(--border));border-radius:12px;background:var(--blue-soft);align-items:flex-start;font-size:13px}
+.reading-dialog .reading-generating>svg{color:var(--accent);width:20px;height:20px;margin-top:2px}
+.reading-dialog .reading-generating p{font-weight:500;color:var(--text);line-height:1.7}
+.reading-dialog .reading-generating small{font-size:11px;line-height:1.8;color:var(--secondary)}
+.reading-dialog .reading-generating progress{accent-color:#3568ff}
+.reading-dialog .reading-regenerate{border-top:1px solid var(--border);padding-top:18px}
+.reading-dialog .reading-regenerate button{border-radius:9px;font-size:12px}
+.dark .reading-content .reading-question-number{color:#8aabff}
+@media(max-width:600px){.modal-frame>.modal.reading-dialog{padding:20px 16px;border-radius:20px;max-height:min(88dvh,calc(100dvh - 64px))}.reading-dialog .reading-title{font-size:18px}.reading-dialog .original-title{font-size:13px}.reading-dialog .modal-header{margin-bottom:18px}.reading-dialog .paper-detail-abstract{padding:14px}.reading-content .reading-question{padding:17px 0}.reading-content .reading-question h3{font-size:14px;gap:10px}.reading-content .reading-question-number{width:30px;height:30px;border-radius:9px;font-size:11px}.reading-content .reading-question>.chat-content{margin-left:40px}.reading-content .reading-question .chat-content p,.reading-content .reading-question .chat-content li{font-size:13px;line-height:1.85}.reading-content .reading-evidence{padding:12px}.reading-content .reading-evidence summary{font-size:12px}}

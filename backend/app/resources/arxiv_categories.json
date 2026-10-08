@@ -1,0 +1,936 @@
+{
+  "source": "https://arxiv.org/category_taxonomy",
+  "checked": "2026-10-02",
+  "categories": [
+    {
+      "code": "cs.AI",
+      "label": "Artificial Intelligence",
+      "group": "Computer Science",
+      "label_zh": "人工智能"
+    },
+    {
+      "code": "cs.AR",
+      "label": "Hardware Architecture",
+      "group": "Computer Science",
+      "label_zh": "硬件体系结构"
+    },
+    {
+      "code": "cs.CC",
+      "label": "Computational Complexity",
+      "group": "Computer Science",
+      "label_zh": "计算复杂性"
+    },
+    {
+      "code": "cs.CE",
+      "label": "Computational Engineering, Finance, and Science",
+      "group": "Computer Science",
+      "label_zh": "计算工程金融与科学"
+    },
+    {
+      "code": "cs.CG",
+      "label": "Computational Geometry",
+      "group": "Computer Science",
+      "label_zh": "计算几何"
+    },
+    {
+      "code": "cs.CL",
+      "label": "Computation and Language",
+      "group": "Computer Science",
+      "label_zh": "计算与语言"
+    },
+    {
+      "code": "cs.CR",
+      "label": "Cryptography and Security",
+      "group": "Computer Science",
+      "label_zh": "密码学与安全"
+    },
+    {
+      "code": "cs.CV",
+      "label": "Computer Vision and Pattern Recognition",
+      "group": "Computer Science",
+      "label_zh": "计算机视觉与模式识别"
+    },
+    {
+      "code": "cs.CY",
+      "label": "Computers and Society",
+      "group": "Computer Science",
+      "label_zh": "计算机与社会"
+    },
+    {
+      "code": "cs.DB",
+      "label": "Databases",
+      "group": "Computer Science",
+      "label_zh": "数据库"
+    },
+    {
+      "code": "cs.DC",
+      "label": "Distributed, Parallel, and Cluster Computing",
+      "group": "Computer Science",
+      "label_zh": "分布式并行与集群计算"
+    },
+    {
+      "code": "cs.DL",
+      "label": "Digital Libraries",
+      "group": "Computer Science",
+      "label_zh": "数字图书馆"
+    },
+    {
+      "code": "cs.DM",
+      "label": "Discrete Mathematics",
+      "group": "Computer Science",
+      "label_zh": "离散数学"
+    },
+    {
+      "code": "cs.DS",
+      "label": "Data Structures and Algorithms",
+      "group": "Computer Science",
+      "label_zh": "数据结构与算法"
+    },
+    {
+      "code": "cs.ET",
+      "label": "Emerging Technologies",
+      "group": "Computer Science",
+      "label_zh": "新兴技术"
+    },
+    {
+      "code": "cs.FL",
+      "label": "Formal Languages and Automata Theory",
+      "group": "Computer Science",
+      "label_zh": "形式语言与自动机"
+    },
+    {
+      "code": "cs.GL",
+      "label": "General Literature",
+      "group": "Computer Science",
+      "label_zh": "综合文献"
+    },
+    {
+      "code": "cs.GR",
+      "label": "Graphics",
+      "group": "Computer Science",
+      "label_zh": "图形学"
+    },
+    {
+      "code": "cs.GT",
+      "label": "Computer Science and Game Theory",
+      "group": "Computer Science",
+      "label_zh": "计算机科学与博弈论"
+    },
+    {
+      "code": "cs.HC",
+      "label": "Human-Computer Interaction",
+      "group": "Computer Science",
+      "label_zh": "人机交互"
+    },
+    {
+      "code": "cs.IR",
+      "label": "Information Retrieval",
+      "group": "Computer Science",
+      "label_zh": "信息检索"
+    },
+    {
+      "code": "cs.IT",
+      "label": "Information Theory",
+      "group": "Computer Science",
+      "label_zh": "信息论"
+    },
+    {
+      "code": "cs.LG",
+      "label": "Machine Learning",
+      "group": "Computer Science",
+      "label_zh": "机器学习"
+    },
+    {
+      "code": "cs.LO",
+      "label": "Logic in Computer Science",
+      "group": "Computer Science",
+      "label_zh": "计算机逻辑"
+    },
+    {
+      "code": "cs.MA",
+      "label": "Multiagent Systems",
+      "group": "Computer Science",
+      "label_zh": "多智能体系统"
+    },
+    {
+      "code": "cs.MM",
+      "label": "Multimedia",
+      "group": "Computer Science",
+      "label_zh": "多媒体"
+    },
+    {
+      "code": "cs.MS",
+      "label": "Mathematical Software",
+      "group": "Computer Science",
+      "label_zh": "数学软件"
+    },
+    {
+      "code": "cs.NA",
+      "label": "Numerical Analysis",
+      "group": "Computer Science",
+      "label_zh": "数值分析"
+    },
+    {
+      "code": "cs.NE",
+      "label": "Neural and Evolutionary Computing",
+      "group": "Computer Science",
+      "label_zh": "神经与进化计算"
+    },
+    {
+      "code": "cs.NI",
+      "label": "Networking and Internet Architecture",
+      "group": "Computer Science",
+      "label_zh": "网络与互联网体系结构"
+    },
+    {
+      "code": "cs.OH",
+      "label": "Other Computer Science",
+      "group": "Computer Science",
+      "label_zh": "其他计算机科学"
+    },
+    {
+      "code": "cs.OS",
+      "label": "Operating Systems",
+      "group": "Computer Science",
+      "label_zh": "操作系统"
+    },
+    {
+      "code": "cs.PF",
+      "label": "Performance",
+      "group": "Computer Science",
+      "label_zh": "性能"
+    },
+    {
+      "code": "cs.PL",
+      "label": "Programming Languages",
+      "group": "Computer Science",
+      "label_zh": "程序设计语言"
+    },
+    {
+      "code": "cs.RO",
+      "label": "Robotics",
+      "group": "Computer Science",
+      "label_zh": "机器人"
+    },
+    {
+      "code": "cs.SC",
+      "label": "Symbolic Computation",
+      "group": "Computer Science",
+      "label_zh": "符号计算"
+    },
+    {
+      "code": "cs.SD",
+      "label": "Sound",
+      "group": "Computer Science",
+      "label_zh": "声音"
+    },
+    {
+      "code": "cs.SE",
+      "label": "Software Engineering",
+      "group": "Computer Science",
+      "label_zh": "软件工程"
+    },
+    {
+      "code": "cs.SI",
+      "label": "Social and Information Networks",
+      "group": "Computer Science",
+      "label_zh": "社会与信息网络"
+    },
+    {
+      "code": "cs.SY",
+      "label": "Systems and Control",
+      "group": "Computer Science",
+      "label_zh": "系统与控制"
+    },
+    {
+      "code": "econ.EM",
+      "label": "Econometrics",
+      "group": "Economics",
+      "label_zh": "计量经济学"
+    },
+    {
+      "code": "econ.GN",
+      "label": "General Economics",
+      "group": "Economics",
+      "label_zh": "一般经济学"
+    },
+    {
+      "code": "econ.TH",
+      "label": "Theoretical Economics",
+      "group": "Economics",
+      "label_zh": "理论经济学"
+    },
+    {
+      "code": "eess.AS",
+      "label": "Audio and Speech Processing",
+      "group": "Electrical Engineering and Systems Science",
+      "label_zh": "音频与语音处理"
+    },
+    {
+      "code": "eess.IV",
+      "label": "Image and Video Processing",
+      "group": "Electrical Engineering and Systems Science",
+      "label_zh": "图像与视频处理"
+    },
+    {
+      "code": "eess.SP",
+      "label": "Signal Processing",
+      "group": "Electrical Engineering and Systems Science",
+      "label_zh": "信号处理"
+    },
+    {
+      "code": "eess.SY",
+      "label": "Systems and Control",
+      "group": "Electrical Engineering and Systems Science",
+      "label_zh": "系统与控制"
+    },
+    {
+      "code": "math.AC",
+      "label": "Commutative Algebra",
+      "group": "Mathematics",
+      "label_zh": "交换代数"
+    },
+    {
+      "code": "math.AG",
+      "label": "Algebraic Geometry",
+      "group": "Mathematics",
+      "label_zh": "代数几何"
+    },
+    {
+      "code": "math.AP",
+      "label": "Analysis of PDEs",
+      "group": "Mathematics",
+      "label_zh": "偏微分方程分析"
+    },
+    {
+      "code": "math.AT",
+      "label": "Algebraic Topology",
+      "group": "Mathematics",
+      "label_zh": "代数拓扑"
+    },
+    {
+      "code": "math.CA",
+      "label": "Classical Analysis and ODEs",
+      "group": "Mathematics",
+      "label_zh": "经典分析与常微分方程"
+    },
+    {
+      "code": "math.CO",
+      "label": "Combinatorics",
+      "group": "Mathematics",
+      "label_zh": "组合数学"
+    },
+    {
+      "code": "math.CT",
+      "label": "Category Theory",
+      "group": "Mathematics",
+      "label_zh": "范畴论"
+    },
+    {
+      "code": "math.CV",
+      "label": "Complex Variables",
+      "group": "Mathematics",
+      "label_zh": "复变函数"
+    },
+    {
+      "code": "math.DG",
+      "label": "Differential Geometry",
+      "group": "Mathematics",
+      "label_zh": "微分几何"
+    },
+    {
+      "code": "math.DS",
+      "label": "Dynamical Systems",
+      "group": "Mathematics",
+      "label_zh": "动力系统"
+    },
+    {
+      "code": "math.FA",
+      "label": "Functional Analysis",
+      "group": "Mathematics",
+      "label_zh": "泛函分析"
+    },
+    {
+      "code": "math.GM",
+      "label": "General Mathematics",
+      "group": "Mathematics",
+      "label_zh": "一般数学"
+    },
+    {
+      "code": "math.GN",
+      "label": "General Topology",
+      "group": "Mathematics",
+      "label_zh": "一般拓扑"
+    },
+    {
+      "code": "math.GR",
+      "label": "Group Theory",
+      "group": "Mathematics",
+      "label_zh": "群论"
+    },
+    {
+      "code": "math.GT",
+      "label": "Geometric Topology",
+      "group": "Mathematics",
+      "label_zh": "几何拓扑"
+    },
+    {
+      "code": "math.HO",
+      "label": "History and Overview",
+      "group": "Mathematics",
+      "label_zh": "数学历史与综述"
+    },
+    {
+      "code": "math.IT",
+      "label": "Information Theory",
+      "group": "Mathematics",
+      "label_zh": "信息论"
+    },
+    {
+      "code": "math.KT",
+      "label": "K-Theory and Homology",
+      "group": "Mathematics",
+      "label_zh": "K理论与同调"
+    },
+    {
+      "code": "math.LO",
+      "label": "Logic",
+      "group": "Mathematics",
+      "label_zh": "数理逻辑"
+    },
+    {
+      "code": "math.MG",
+      "label": "Metric Geometry",
+      "group": "Mathematics",
+      "label_zh": "度量几何"
+    },
+    {
+      "code": "math.MP",
+      "label": "Mathematical Physics",
+      "group": "Mathematics",
+      "label_zh": "数学物理"
+    },
+    {
+      "code": "math.NA",
+      "label": "Numerical Analysis",
+      "group": "Mathematics",
+      "label_zh": "数值分析"
+    },
+    {
+      "code": "math.NT",
+      "label": "Number Theory",
+      "group": "Mathematics",
+      "label_zh": "数论"
+    },
+    {
+      "code": "math.OA",
+      "label": "Operator Algebras",
+      "group": "Mathematics",
+      "label_zh": "算子代数"
+    },
+    {
+      "code": "math.OC",
+      "label": "Optimization and Control",
+      "group": "Mathematics",
+      "label_zh": "优化与控制"
+    },
+    {
+      "code": "math.PR",
+      "label": "Probability",
+      "group": "Mathematics",
+      "label_zh": "概率论"
+    },
+    {
+      "code": "math.QA",
+      "label": "Quantum Algebra",
+      "group": "Mathematics",
+      "label_zh": "量子代数"
+    },
+    {
+      "code": "math.RA",
+      "label": "Rings and Algebras",
+      "group": "Mathematics",
+      "label_zh": "环与代数"
+    },
+    {
+      "code": "math.RT",
+      "label": "Representation Theory",
+      "group": "Mathematics",
+      "label_zh": "表示论"
+    },
+    {
+      "code": "math.SG",
+      "label": "Symplectic Geometry",
+      "group": "Mathematics",
+      "label_zh": "辛几何"
+    },
+    {
+      "code": "math.SP",
+      "label": "Spectral Theory",
+      "group": "Mathematics",
+      "label_zh": "谱理论"
+    },
+    {
+      "code": "math.ST",
+      "label": "Statistics Theory",
+      "group": "Mathematics",
+      "label_zh": "统计理论"
+    },
+    {
+      "code": "astro-ph.CO",
+      "label": "Cosmology and Nongalactic Astrophysics",
+      "group": "Physics",
+      "label_zh": "宇宙学与河外天体物理"
+    },
+    {
+      "code": "astro-ph.EP",
+      "label": "Earth and Planetary Astrophysics",
+      "group": "Physics",
+      "label_zh": "地球与行星天体物理"
+    },
+    {
+      "code": "astro-ph.GA",
+      "label": "Astrophysics of Galaxies",
+      "group": "Physics",
+      "label_zh": "星系天体物理"
+    },
+    {
+      "code": "astro-ph.HE",
+      "label": "High Energy Astrophysical Phenomena",
+      "group": "Physics",
+      "label_zh": "高能天体物理现象"
+    },
+    {
+      "code": "astro-ph.IM",
+      "label": "Instrumentation and Methods for Astrophysics",
+      "group": "Physics",
+      "label_zh": "天体物理仪器与方法"
+    },
+    {
+      "code": "astro-ph.SR",
+      "label": "Solar and Stellar Astrophysics",
+      "group": "Physics",
+      "label_zh": "太阳与恒星天体物理"
+    },
+    {
+      "code": "cond-mat.dis-nn",
+      "label": "Disordered Systems and Neural Networks",
+      "group": "Physics",
+      "label_zh": "无序系统与神经网络"
+    },
+    {
+      "code": "cond-mat.mes-hall",
+      "label": "Mesoscale and Nanoscale Physics",
+      "group": "Physics",
+      "label_zh": "介观与纳米尺度物理"
+    },
+    {
+      "code": "cond-mat.mtrl-sci",
+      "label": "Materials Science",
+      "group": "Physics",
+      "label_zh": "材料科学"
+    },
+    {
+      "code": "cond-mat.other",
+      "label": "Other Condensed Matter",
+      "group": "Physics",
+      "label_zh": "其他凝聚态物理"
+    },
+    {
+      "code": "cond-mat.quant-gas",
+      "label": "Quantum Gases",
+      "group": "Physics",
+      "label_zh": "量子气体"
+    },
+    {
+      "code": "cond-mat.soft",
+      "label": "Soft Condensed Matter",
+      "group": "Physics",
+      "label_zh": "软物质"
+    },
+    {
+      "code": "cond-mat.stat-mech",
+      "label": "Statistical Mechanics",
+      "group": "Physics",
+      "label_zh": "统计力学"
+    },
+    {
+      "code": "cond-mat.str-el",
+      "label": "Strongly Correlated Electrons",
+      "group": "Physics",
+      "label_zh": "强关联电子"
+    },
+    {
+      "code": "cond-mat.supr-con",
+      "label": "Superconductivity",
+      "group": "Physics",
+      "label_zh": "超导"
+    },
+    {
+      "code": "gr-qc",
+      "label": "General Relativity and Quantum Cosmology",
+      "group": "Physics",
+      "label_zh": "广义相对论与量子宇宙学"
+    },
+    {
+      "code": "hep-ex",
+      "label": "High Energy Physics - Experiment",
+      "group": "Physics",
+      "label_zh": "高能物理实验"
+    },
+    {
+      "code": "hep-lat",
+      "label": "High Energy Physics - Lattice",
+      "group": "Physics",
+      "label_zh": "高能物理格点"
+    },
+    {
+      "code": "hep-ph",
+      "label": "High Energy Physics - Phenomenology",
+      "group": "Physics",
+      "label_zh": "高能物理唯象"
+    },
+    {
+      "code": "hep-th",
+      "label": "High Energy Physics - Theory",
+      "group": "Physics",
+      "label_zh": "高能物理理论"
+    },
+    {
+      "code": "math-ph",
+      "label": "Mathematical Physics",
+      "group": "Physics",
+      "label_zh": "数学物理"
+    },
+    {
+      "code": "nlin.AO",
+      "label": "Adaptation and Self-Organizing Systems",
+      "group": "Physics",
+      "label_zh": "适应与自组织系统"
+    },
+    {
+      "code": "nlin.CD",
+      "label": "Chaotic Dynamics",
+      "group": "Physics",
+      "label_zh": "混沌动力学"
+    },
+    {
+      "code": "nlin.CG",
+      "label": "Cellular Automata and Lattice Gases",
+      "group": "Physics",
+      "label_zh": "元胞自动机与格点气体"
+    },
+    {
+      "code": "nlin.PS",
+      "label": "Pattern Formation and Solitons",
+      "group": "Physics",
+      "label_zh": "模式形成与孤子"
+    },
+    {
+      "code": "nlin.SI",
+      "label": "Exactly Solvable and Integrable Systems",
+      "group": "Physics",
+      "label_zh": "可精确求解与可积系统"
+    },
+    {
+      "code": "nucl-ex",
+      "label": "Nuclear Experiment",
+      "group": "Physics",
+      "label_zh": "核物理实验"
+    },
+    {
+      "code": "nucl-th",
+      "label": "Nuclear Theory",
+      "group": "Physics",
+      "label_zh": "核物理理论"
+    },
+    {
+      "code": "physics.acc-ph",
+      "label": "Accelerator Physics",
+      "group": "Physics",
+      "label_zh": "加速器物理"
+    },
+    {
+      "code": "physics.ao-ph",
+      "label": "Atmospheric and Oceanic Physics",
+      "group": "Physics",
+      "label_zh": "大气与海洋物理"
+    },
+    {
+      "code": "physics.app-ph",
+      "label": "Applied Physics",
+      "group": "Physics",
+      "label_zh": "应用物理"
+    },
+    {
+      "code": "physics.atm-clus",
+      "label": "Atomic and Molecular Clusters",
+      "group": "Physics",
+      "label_zh": "原子与分子团簇"
+    },
+    {
+      "code": "physics.atom-ph",
+      "label": "Atomic Physics",
+      "group": "Physics",
+      "label_zh": "原子物理"
+    },
+    {
+      "code": "physics.bio-ph",
+      "label": "Biological Physics",
+      "group": "Physics",
+      "label_zh": "生物物理"
+    },
+    {
+      "code": "physics.chem-ph",
+      "label": "Chemical Physics",
+      "group": "Physics",
+      "label_zh": "化学物理"
+    },
+    {
+      "code": "physics.class-ph",
+      "label": "Classical Physics",
+      "group": "Physics",
+      "label_zh": "经典物理"
+    },
+    {
+      "code": "physics.comp-ph",
+      "label": "Computational Physics",
+      "group": "Physics",
+      "label_zh": "计算物理"
+    },
+    {
+      "code": "physics.data-an",
+      "label": "Data Analysis, Statistics and Probability",
+      "group": "Physics",
+      "label_zh": "数据分析统计与概率"
+    },
+    {
+      "code": "physics.ed-ph",
+      "label": "Physics Education",
+      "group": "Physics",
+      "label_zh": "物理教育"
+    },
+    {
+      "code": "physics.flu-dyn",
+      "label": "Fluid Dynamics",
+      "group": "Physics",
+      "label_zh": "流体动力学"
+    },
+    {
+      "code": "physics.gen-ph",
+      "label": "General Physics",
+      "group": "Physics",
+      "label_zh": "一般物理"
+    },
+    {
+      "code": "physics.geo-ph",
+      "label": "Geophysics",
+      "group": "Physics",
+      "label_zh": "地球物理"
+    },
+    {
+      "code": "physics.hist-ph",
+      "label": "History and Philosophy of Physics",
+      "group": "Physics",
+      "label_zh": "物理历史与哲学"
+    },
+    {
+      "code": "physics.ins-det",
+      "label": "Instrumentation and Detectors",
+      "group": "Physics",
+      "label_zh": "仪器与探测器"
+    },
+    {
+      "code": "physics.med-ph",
+      "label": "Medical Physics",
+      "group": "Physics",
+      "label_zh": "医学物理"
+    },
+    {
+      "code": "physics.optics",
+      "label": "Optics",
+      "group": "Physics",
+      "label_zh": "光学"
+    },
+    {
+      "code": "physics.plasm-ph",
+      "label": "Plasma Physics",
+      "group": "Physics",
+      "label_zh": "等离子体物理"
+    },
+    {
+      "code": "physics.pop-ph",
+      "label": "Popular Physics",
+      "group": "Physics",
+      "label_zh": "科普物理"
+    },
+    {
+      "code": "physics.soc-ph",
+      "label": "Physics and Society",
+      "group": "Physics",
+      "label_zh": "物理与社会"
+    },
+    {
+      "code": "physics.space-ph",
+      "label": "Space Physics",
+      "group": "Physics",
+      "label_zh": "空间物理"
+    },
+    {
+      "code": "quant-ph",
+      "label": "Quantum Physics",
+      "group": "Physics",
+      "label_zh": "量子物理"
+    },
+    {
+      "code": "q-bio.BM",
+      "label": "Biomolecules",
+      "group": "Quantitative Biology",
+      "label_zh": "生物分子"
+    },
+    {
+      "code": "q-bio.CB",
+      "label": "Cell Behavior",
+      "group": "Quantitative Biology",
+      "label_zh": "细胞行为"
+    },
+    {
+      "code": "q-bio.GN",
+      "label": "Genomics",
+      "group": "Quantitative Biology",
+      "label_zh": "基因组学"
+    },
+    {
+      "code": "q-bio.MN",
+      "label": "Molecular Networks",
+      "group": "Quantitative Biology",
+      "label_zh": "分子网络"
+    },
+    {
+      "code": "q-bio.NC",
+      "label": "Neurons and Cognition",
+      "group": "Quantitative Biology",
+      "label_zh": "神经元与认知"
+    },
+    {
+      "code": "q-bio.OT",
+      "label": "Other Quantitative Biology",
+      "group": "Quantitative Biology",
+      "label_zh": "其他定量生物学"
+    },
+    {
+      "code": "q-bio.PE",
+      "label": "Populations and Evolution",
+      "group": "Quantitative Biology",
+      "label_zh": "种群与进化"
+    },
+    {
+      "code": "q-bio.QM",
+      "label": "Quantitative Methods",
+      "group": "Quantitative Biology",
+      "label_zh": "定量方法"
+    },
+    {
+      "code": "q-bio.SC",
+      "label": "Subcellular Processes",
+      "group": "Quantitative Biology",
+      "label_zh": "亚细胞过程"
+    },
+    {
+      "code": "q-bio.TO",
+      "label": "Tissues and Organs",
+      "group": "Quantitative Biology",
+      "label_zh": "组织与器官"
+    },
+    {
+      "code": "q-fin.CP",
+      "label": "Computational Finance",
+      "group": "Quantitative Finance",
+      "label_zh": "计算金融"
+    },
+    {
+      "code": "q-fin.EC",
+      "label": "Economics",
+      "group": "Quantitative Finance",
+      "label_zh": "经济学"
+    },
+    {
+      "code": "q-fin.GN",
+      "label": "General Finance",
+      "group": "Quantitative Finance",
+      "label_zh": "一般金融"
+    },
+    {
+      "code": "q-fin.MF",
+      "label": "Mathematical Finance",
+      "group": "Quantitative Finance",
+      "label_zh": "数学金融"
+    },
+    {
+      "code": "q-fin.PM",
+      "label": "Portfolio Management",
+      "group": "Quantitative Finance",
+      "label_zh": "投资组合管理"
+    },
+    {
+      "code": "q-fin.PR",
+      "label": "Pricing of Securities",
+      "group": "Quantitative Finance",
+      "label_zh": "证券定价"
+    },
+    {
+      "code": "q-fin.RM",
+      "label": "Risk Management",
+      "group": "Quantitative Finance",
+      "label_zh": "风险管理"
+    },
+    {
+      "code": "q-fin.ST",
+      "label": "Statistical Finance",
+      "group": "Quantitative Finance",
+      "label_zh": "统计金融"
+    },
+    {
+      "code": "q-fin.TR",
+      "label": "Trading and Market Microstructure",
+      "group": "Quantitative Finance",
+      "label_zh": "交易与市场微观结构"
+    },
+    {
+      "code": "stat.AP",
+      "label": "Applications",
+      "group": "Statistics",
+      "label_zh": "统计应用"
+    },
+    {
+      "code": "stat.CO",
+      "label": "Computation",
+      "group": "Statistics",
+      "label_zh": "统计计算"
+    },
+    {
+      "code": "stat.ME",
+      "label": "Methodology",
+      "group": "Statistics",
+      "label_zh": "统计方法"
+    },
+    {
+      "code": "stat.ML",
+      "label": "Machine Learning",
+      "group": "Statistics",
+      "label_zh": "统计机器学习"
+    },
+    {
+      "code": "stat.OT",
+      "label": "Other Statistics",
+      "group": "Statistics",
+      "label_zh": "其他统计学"
+    },
+    {
+      "code": "stat.TH",
+      "label": "Statistics Theory",
+      "group": "Statistics",
+      "label_zh": "统计理论"
+    }
+  ]
+}

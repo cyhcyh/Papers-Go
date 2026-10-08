@@ -1,0 +1,12 @@
+.git
+.env
+.secrets
+.venv
+.conda-env
+data
+artifacts
+frontend/.checks
+刷论文-开发方案书.md
+**/__pycache__
+**/node_modules
+**/.pytest_cache

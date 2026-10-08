@@ -1,0 +1,49 @@
+name: shualunwen
+services:
+  app:
+    image: roger1001/papers-go:latest
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATA_DIR: /data
+      FRONTEND_DIR: /app/frontend/dist
+      MODEL_KEY_FILE: /secrets/model-keys.key
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      TZ: ${TZ:-Asia/Shanghai}
+      PIPELINE_MODE: external
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data:/data
+      - ./.secrets:/secrets
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  worker:
+    image: roger1001/papers-go:latest
+    command: ["python", "-m", "app.worker"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATA_DIR: /data
+      FRONTEND_DIR: /app/frontend/dist
+      MODEL_KEY_FILE: /secrets/model-keys.key
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      TZ: ${TZ:-Asia/Shanghai}
+      PIPELINE_MODE: external
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data:/data
+      - ./.secrets:/secrets
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped

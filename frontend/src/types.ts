@@ -1,0 +1,16 @@
+export interface User {id:number;username:string;is_admin:number;telegram_chat_id:string|null;notifications_enabled:number;telegram_enabled:number}
+export interface Paper {last_browsed_at?:string|null;paper_date?:string|null;paper_date_basis?:'publication'|'conference'|'year'|'ingested';paper_date_sort?:string;ingested_date?:string}
+export interface Topic {id:number;name_zh:string;name_en:string;parent_id:number|null;status?:string;created_by?:string;today_count?:number;paper_count?:number;like_rate?:number;category_keys?:string[];standard_key?:string;standard_system?:string;standard_code?:string;standard_path?:string;pending_count?:number;discipline?:string;description?:string;proposal_reason?:string}
+export interface Paper {id:number;title:string;abstract:string;authors:string[];published:string;venue_year?:number|null;primary_category:string;source_label?:string;categories?:string[];venue:string|null;venue_rank:string|null;tldr:string|null;abs_url:string|null;score?:number;quality_score:number|null;quality_status?:'pending'|'limited'|'assessed';quality_assessment?:{summary:string;discipline?:string;material_level?:string;contribution?:number|null;evidence?:number|null}|null;hf_upvotes:number;github_stars:number;topics?:Topic[];reason?:string;exploration?:boolean;liked?:boolean;saved?:boolean;like_count?:number;save_count?:number;expires_at?:string;brief?:{title_zh:string;problem:string;contribution_result?:string;contribution?:string;result?:string}|null}
+export interface Category {key:string;kind:'arxiv'|'venue';code:string;label:string;group:string;discipline?:string;discipline_label?:string;label_en?:string;label_zh?:string;paper_count:number;topics:Topic[];enabled?:boolean;standard_system?:string|null}
+export type PaperSocialState={like_count:number;save_count:number;liked:boolean;saved:boolean;expires_at:string}
+export type InteractionResult=PaperSocialState&{id:number|null;paper_id:number;action:string;recorded?:boolean;life_extended?:boolean}
+export interface CategorySelection {categories:string[];topics:Record<string,number[]>;weights?:Record<string,number>}
+export interface InterestEntry {text:string;weight:number;until:string|null}
+export interface InterestForm {description:string;long_term:InterestEntry[];temporary:InterestEntry[];exclusions:string[];inferred?:string[]}
+export interface Proposal {id:string;name:string;arguments:Record<string,unknown>;before?:string;status:string}
+export interface SkillEvent {id:string;title:string;action:string;enabled?:number;revision?:number}
+export interface Message {id?:number;role:string;content:string;proposals?:Proposal[];skill_events?:SkillEvent[]}
+export interface Profile {id:number;version:number;content:string;structured:{topic_ids?:number[];category_selection?:CategorySelection};form:InterestForm;change_reason:string;created_at:string;embedding_ready:boolean}
+export interface InterestUpdate {revision:string;status:'queued'|'processing'|'failed'|'completed';message:string;created_at:string;updated_at:string}
+export interface ProfileResponse {current:Profile|null;draft?:Profile|null;update?:InterestUpdate|null;history:{version:number;change_reason:string;created_at:string}[]}

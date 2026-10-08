@@ -1,0 +1,36 @@
+{
+  "name": "shualunwen",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "check:math": "node scripts/check-math.mjs",
+    "check:chat": "node scripts/check-chat.mjs",
+    "check:dwell": "node scripts/check-dwell.mjs",
+    "check:auth": "node scripts/check-auth.mjs"
+  },
+  "dependencies": {
+    "@assistant-ui/react": "^0.15.22",
+    "framer-motion": "^11.18.2",
+    "katex": "^0.18.10",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.18.4",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.8",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3",
+    "vite": "^6.3.6"
+  }
+}

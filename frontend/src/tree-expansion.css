@@ -1,0 +1,21 @@
+.tree-expansion-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 12px;font-size:11px;color:var(--secondary)}
+.tree-expansion-controls>div{display:flex;gap:12px;margin-left:auto}
+.tree-expansion-controls button{padding:3px 0;border:0;background:transparent;color:var(--accent);font-size:12px;white-space:nowrap}
+.tree-expansion-controls button:hover{text-decoration:underline}.tree-expansion-controls button:disabled{opacity:.5}
+.tree-expansion-buttons>div{gap:6px}
+.category-tree .all-topics{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:38px;border-radius:7px;font-size:12px;padding:8px 10px;text-align:left}
+.category-tree .all-topics>small{padding:2px 6px;border-radius:5px;background:var(--card);font-size:11px;color:var(--secondary)}
+.browse-category-tree .tree-expansion-controls{margin:8px 0 10px}
+.browse-category-tree .tree-expansion-buttons>div{width:100%;margin-left:0}
+.browse-category-tree .tree-expansion-buttons button{flex:1;min-width:0;min-height:32px}
+.browse-category-tree .discipline-section{margin-top:2px}
+.browse-category-tree .discipline-heading{padding:7px 5px;min-height:36px}
+.tree-expansion-buttons button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:30px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--secondary);font-size:11px;line-height:1.5}
+.tree-expansion-buttons button:hover:not(:disabled){text-decoration:none;background:var(--soft);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 30%,var(--border))}
+.tree-expansion-buttons button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tree-expansion-buttons svg{flex-shrink:0}
+.tree-selection-summary{font-size:10px!important;font-weight:400;color:var(--accent)!important;padding:3px 7px;background:color-mix(in srgb,var(--accent) 7%,var(--card));border-radius:6px;white-space:nowrap;flex-shrink:0}
+.discipline-heading .tree-selection-summary,.source-discipline-row button>.tree-selection-summary{flex:0 0 auto;margin-left:auto}.discipline-heading .tree-selection-summary+small{margin-left:0}
+.category-choice .tree-selection-summary{margin-left:auto}
+.source-tree-toolbar{padding:0 15px}
+@media(max-width:600px){.tree-expansion-controls{gap:8px}.tree-expansion-controls button{font-size:11px}.category-choice .tree-selection-summary{font-size:10px!important}}

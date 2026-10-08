@@ -1,0 +1,17 @@
+.trends-content .trend-grid.daily-hotspots { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.trends-content .trend-card.daily-hotspot { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:54px; padding:12px 14px; border-radius:12px; background:var(--card); box-shadow:none; }
+.daily-hotspot .hotspot-name { min-width:0; }
+.daily-hotspot .hotspot-name h3 { margin:0; font-size:15px; line-height:1.4; font-weight:600; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.daily-hotspot .hotspot-count { display:flex; align-items:baseline; gap:3px; flex-shrink:0; padding:4px 7px; border-radius:7px; background:var(--blue-soft); color:var(--accent); font-size:12px; line-height:1.3; }
+.daily-hotspot .hotspot-count strong { font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
+.hotspot-status { margin:-3px 0 12px; font-size:13px; line-height:1.6; color:var(--muted); }
+.rightbar .daily-trends .daily-trends-date { margin:0 0 9px; color:var(--muted); font-size:12px; }
+.daily-trends .daily-overview .trend-markdown .chat-content>p { color:var(--text); }
+.rightbar .daily-trends .daily-overview .trend-markdown ul { margin:0; padding-left:17px; }
+.rightbar .daily-trends .daily-overview .trend-markdown li { margin:7px 0; padding-left:2px; line-height:1.7; }
+.rightbar .daily-trends .daily-overview .trend-markdown li::marker { color:var(--accent); }
+.rightbar .daily-trends .trend-more { margin-top:12px; }
+@media(max-width:600px) {
+ .trends-content .trend-grid.daily-hotspots { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+ .trends-content .trend-card.daily-hotspot { min-height:52px; padding:10px; }
+}

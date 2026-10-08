@@ -1,0 +1,8 @@
+name: shualunwen
+channels:
+  - defaults
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - -r backend/requirements-dev.txt

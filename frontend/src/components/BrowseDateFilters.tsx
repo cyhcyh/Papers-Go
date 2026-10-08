@@ -1,0 +1,5 @@
+import './BrowseDateFilters.css'
+
+export function BrowseDateFilters({basis,range,year,month,onBasis,onRange,onYear,onMonth}:{basis:string;range:string;year:string;month:string;onBasis:(v:string)=>void;onRange:(v:string)=>void;onYear:(v:string)=>void;onMonth:(v:string)=>void}) {
+ return <><select aria-label="日期依据" value={basis} onChange={e=>onBasis(e.target.value)}><option value="paper">论文日期</option><option value="ingested">本站收录时间</option></select><select aria-label="时间范围" value={range} onChange={e=>onRange(e.target.value)}><option value="two_days">近 2 天</option><option value="week">近 7 天</option><option value="month">近 30 天</option><option value="year">按年份</option><option value="calendar_month">按月份</option><option value="all">全部</option></select>{range==='year'&&<input className="browse-date-value" aria-label="年份" type="number" min="1900" max="2200" value={year} onChange={e=>onYear(e.target.value)}/>} {range==='calendar_month'&&<input className="browse-date-value" aria-label="月份" type="month" value={month} onChange={e=>onMonth(e.target.value)}/>}</>
+}

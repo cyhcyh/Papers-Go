@@ -1,0 +1,16 @@
+.env
+.secrets/
+.venv/
+.conda-env/
+__pycache__/
+.pytest_cache/
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+/frontend/.checks/
+data/
+*.log
+
+# Local validation output and model caches.
+/artifacts/
+/刷论文-开发方案书.md

@@ -1,0 +1,55 @@
+
+.trends-content .direction-overview{padding:0;max-height:560px;overflow:hidden;background:var(--card);border:1px solid var(--card-line);border-radius:18px;box-shadow:0 5px 22px #253d6609}
+.direction-report-header{padding:22px 24px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0}
+.direction-report-identity{display:flex;align-items:center;gap:11px}
+.direction-report-identity>.content-icon{display:flex;align-items:center;justify-content:center;width:37px;height:37px;border-radius:11px;background:var(--card-tint);color:var(--card-accent);flex-shrink:0}
+.direction-report-identity>.content-icon svg{width:20px;height:20px}
+.direction-report-header .eyebrow{font-size:8px;line-height:1.6;letter-spacing:1.3px;color:var(--secondary);margin:0 0 3px}
+.trends-content .direction-report-header h2{font-size:18px;line-height:1.5;font-weight:650;margin:0;letter-spacing:0}
+.direction-report-header .direction-period{font-size:10px;line-height:1.8;color:var(--secondary);margin:0;white-space:nowrap}
+.direction-overview .direction-tabs{margin:19px 24px 0;padding:4px;gap:3px;background:var(--soft);border:1px solid var(--card-line);border-radius:10px;min-height:40px}
+.direction-overview .direction-tabs button{font-size:12px;font-weight:500;padding:7px 14px;border:1px solid transparent;border-radius:7px;line-height:1.5;background:transparent;color:var(--secondary);box-shadow:none;max-width:220px}
+.direction-overview .direction-tabs button[aria-selected=true]{background:var(--card);border-color:var(--card-line);color:var(--card-accent);box-shadow:0 2px 5px #223b6010;font-weight:600}
+.direction-overview .direction-scroll{margin-top:0;padding:0 24px}
+.trends-content .direction-overview .direction-full{display:block;margin:0;padding:20px 0 2px}
+.direction-overview .trend-markdown .chat-content>p.trend-summary{padding:13px 15px;margin:0 0 18px;border:1px solid var(--card-line);border-radius:10px;background:color-mix(in srgb,var(--card-accent) 3%,var(--card));font-size:13px;line-height:1.85;color:var(--content-muted,var(--secondary))}
+.trend-summary-label{font-size:10px;color:var(--card-accent);font-weight:550;line-height:1.6;display:block;margin:0 0 6px}
+.direction-overview .trend-markdown .chat-content>ol:has(>.trend-progress){margin:0;padding:0;list-style:none}
+.direction-overview .trend-markdown .trend-progress{margin:0 0 17px;padding:0 0 17px;border-bottom:1px solid var(--card-line);line-height:1.8}
+.direction-overview .trend-markdown .chat-content>ol:last-child>.trend-progress:last-child{padding:0;margin:0;border:0}
+.trend-progress-heading{display:flex;align-items:flex-start;gap:9px;margin:0 0 7px}
+.trend-progress-number{font-size:11px;font-weight:600;color:var(--card-accent);font-variant-numeric:tabular-nums;line-height:1.8;flex-shrink:0;margin-top:2px}
+.direction-overview .trend-markdown h4{font-size:14px;font-weight:600;line-height:1.65;color:var(--text);margin:0}
+.direction-overview .trend-markdown .trend-progress-body{font-size:13px;line-height:1.85;color:var(--content-muted,var(--secondary))}
+.direction-overview .trend-markdown .trend-progress-body p{font-size:inherit;line-height:inherit;color:inherit}
+.trends-content .direction-overview .direction-updated{font-size:10px;line-height:1.7;padding:12px 0 14px;margin:17px 24px 0;border-top:1px solid var(--card-line);color:var(--secondary)}
+@media(max-width:600px){
+ .trends-content .direction-overview{max-height:65dvh;border-radius:15px}
+ .direction-report-header{padding:18px 18px 0;align-items:flex-start;gap:8px;flex-wrap:wrap}
+ .direction-report-identity{gap:9px}
+ .direction-report-identity>.content-icon{width:33px;height:33px;border-radius:10px}
+ .direction-report-identity>.content-icon svg{width:18px;height:18px}
+ .trends-content .direction-report-header h2{font-size:17px}
+ .direction-report-header .eyebrow{font-size:7px;letter-spacing:1px}
+ .direction-report-header .direction-period{font-size:9px;margin-top:10px}
+ .direction-overview .direction-tabs{margin:16px 18px 0;padding:3px;border-radius:9px;min-height:36px}
+ .direction-overview .direction-tabs button{font-size:11px;padding:7px 12px;border-radius:6px}
+ .direction-overview .direction-scroll{padding:0 18px}
+ .trends-content .direction-overview .direction-full{padding-top:17px}
+ .direction-overview .trend-markdown .chat-content>p.trend-summary{padding:12px 13px;line-height:1.8;margin-bottom:17px}
+ .direction-overview .trend-markdown h4{font-size:13px;line-height:1.65}
+ .direction-overview .trend-markdown .trend-progress-body{line-height:1.8}
+ .trends-content .direction-overview .direction-updated{margin:14px 18px 0;padding:10px 0 12px}
+}
+
+.trends-content .direction-overview{display:flex;flex-direction:column;min-height:0}
+.direction-overview .direction-report-identity{min-width:0}
+.direction-overview .direction-tabs{display:flex;overflow-x:auto;scrollbar-width:none;flex-shrink:0;min-width:0}
+.direction-overview .direction-tabs button{flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.direction-overview .direction-tabs::-webkit-scrollbar,.direction-overview .direction-scroll::-webkit-scrollbar{display:none}
+.direction-overview .direction-scroll{min-height:0;overflow-y:auto;scrollbar-width:none;overscroll-behavior:contain}
+.direction-overview .direction-tabs button:hover:not([aria-selected=true]){color:var(--card-accent);background:var(--card-tint)}
+.direction-overview .direction-tabs button:focus-visible,.direction-overview .direction-scroll:focus-visible{outline:2px solid var(--card-accent);outline-offset:-2px}
+.trends-content .direction-overview .direction-updated{flex-shrink:0}
+.direction-overview .direction-report-empty{padding:20px 24px;margin:0;font-size:13px;line-height:1.85}
+@media(max-width:600px){.direction-overview .direction-report-empty{padding:18px}}

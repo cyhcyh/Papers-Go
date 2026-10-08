@@ -1,0 +1,3 @@
+export const taskNames:Record<string,string>={fetch_arxiv:'arXiv',fetch_conf:'顶会论文',fetch_community:'社区信号',classify:'主题分类',build_vectors:'建立向量',assess_quality:'论文质量评估',tldr_gen:'论文速读',preread:'Top 5 预读',trend_stats:'趋势聚合',alert_eval:'预警评估',metrics:'每日指标汇总',reflect:'画像反思',trend_report:'方向趋势简述',audit:'分类抽样评估',author_impact:'作者影响力',paper_expiry:'到期论文清退'}
+export const pipelineTasks=['fetch_arxiv','fetch_conf','fetch_community','classify','build_vectors','assess_quality','tldr_gen','preread','trend_stats','alert_eval','metrics']
+export const independentTasks=['author_impact','paper_expiry','trend_report','reflect','audit']

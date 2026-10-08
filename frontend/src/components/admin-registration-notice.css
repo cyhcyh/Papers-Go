@@ -1,0 +1,42 @@
+
+.modal.admin-registration-notice{padding:0;width:580px;border:1px solid var(--welcome-line);border-radius:20px;box-shadow:0 18px 70px #142d5624;overflow:hidden;background:var(--card);color:var(--text)}
+.admin-registration-notice .modal-header{padding:28px 28px 0;margin:0;align-items:flex-start;gap:12px}
+.admin-registration-notice .modal-header h2{font-size:21px;font-weight:650;line-height:1.4;letter-spacing:-.3px;margin:0}
+.admin-registration-notice .welcome-success-icon{display:flex;align-items:center;justify-content:center;width:46px;height:46px;flex-shrink:0;border-radius:14px;background:var(--blue-soft);color:var(--accent)}
+.admin-registration-notice .welcome-success-icon svg{width:25px;height:25px}
+.admin-registration-notice .modal-header>.icon-button{color:var(--secondary);flex-shrink:0;padding:4px}
+.admin-registration-notice .modal-header>.icon-button svg{width:18px;height:18px}
+.admin-registration-notice .welcome-body{padding:25px 28px 22px}
+.admin-registration-notice .welcome-entry-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.admin-registration-notice .welcome-entry-heading h3{font-size:14px;font-weight:600;line-height:1.7;display:flex;align-items:center;gap:7px;margin:0}
+.admin-registration-notice .welcome-entry-heading h3 svg{width:15px;height:15px;color:var(--secondary)}
+.admin-registration-notice .welcome-entry-heading a{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-size:11px;line-height:1.7;white-space:nowrap}
+.admin-registration-notice .welcome-entry-heading a svg{width:12px;height:12px}
+.admin-registration-notice .welcome-entry-address{display:flex;align-items:center;gap:10px;padding:12px 13px;background:var(--soft);border:1px solid var(--welcome-line);border-radius:11px;min-width:0}
+.admin-registration-notice .welcome-entry-address code{flex:1;min-width:0;overflow-wrap:anywhere;font-size:11px;line-height:1.9;color:var(--secondary);background:transparent;font-family:Consolas,monospace}
+.admin-registration-notice .welcome-entry-address button{display:flex;align-items:center;justify-content:center;gap:5px;flex-shrink:0;white-space:nowrap;background:var(--card);border:1px solid var(--welcome-line);border-radius:7px;padding:7px 9px;color:var(--secondary);font-size:11px}
+.admin-registration-notice .welcome-entry-address button svg{width:12px;height:12px}
+.admin-registration-notice .welcome-entry-hint{display:flex;align-items:flex-start;gap:6px;font-size:11px;line-height:1.8;color:var(--secondary);margin:10px 0 0}
+.admin-registration-notice .welcome-entry-hint svg{width:12px;height:12px;margin-top:4px;flex-shrink:0;color:var(--secondary)}
+.admin-registration-notice .welcome-setup{margin-top:23px;padding-top:20px;border-top:1px solid var(--welcome-line);display:flex;gap:12px;align-items:flex-start}
+.admin-registration-notice .welcome-source-icon{width:35px;height:35px;flex-shrink:0;border:1px solid var(--welcome-line);border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--blue-soft);color:var(--accent);margin-top:1px}
+.admin-registration-notice .welcome-source-icon svg{width:19px;height:19px}
+.admin-registration-notice .welcome-setup h3{font-size:14px;line-height:1.7;margin:0 0 5px;font-weight:600}
+.admin-registration-notice .welcome-setup p{font-size:12px;line-height:1.8;color:var(--secondary);margin:0}
+.admin-registration-notice .welcome-defaults{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.admin-registration-notice .welcome-defaults span{display:inline-flex;align-items:center;gap:5px;background:var(--soft);border:1px solid var(--welcome-line);border-radius:6px;padding:4px 7px;font-size:10px;color:var(--secondary);line-height:1.6}
+.admin-registration-notice .welcome-defaults i{width:5px;height:5px;border-radius:50%;background:var(--secondary);flex-shrink:0}
+.admin-registration-notice .welcome-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:17px 28px 21px;border-top:1px solid var(--welcome-line);background:var(--card)}
+.admin-registration-notice .welcome-footer>button{font-size:12px;line-height:1.6;padding:10px 14px;border:1px solid var(--welcome-line);border-radius:9px;background:var(--card);color:var(--secondary)}
+.admin-registration-notice .welcome-footer>a{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 17px;min-height:40px;border-radius:9px;background:var(--accent);color:var(--card);font-size:12px;font-weight:500;line-height:1.6;box-shadow:0 3px 9px color-mix(in srgb,var(--accent) 9%,transparent)}
+.admin-registration-notice .welcome-footer>a svg{width:14px;height:14px}
+@media(max-width:600px){.modal.admin-registration-notice{width:100%;max-width:370px;border-radius:18px}.admin-registration-notice .modal-header{padding:23px 21px 0;gap:6px}.admin-registration-notice .modal-header h2{font-size:19px}.admin-registration-notice .welcome-success-icon{width:40px;height:40px;border-radius:12px}.admin-registration-notice .welcome-success-icon svg{width:23px;height:23px}.admin-registration-notice .welcome-body{padding:23px 21px 20px}.admin-registration-notice .welcome-entry-heading{gap:6px}.admin-registration-notice .welcome-entry-heading h3{font-size:13px}.admin-registration-notice .welcome-entry-heading a{font-size:10px}.admin-registration-notice .welcome-entry-address{padding:11px;gap:7px;align-items:flex-start}.admin-registration-notice .welcome-entry-address code{font-size:10px}.admin-registration-notice .welcome-entry-address button{padding:6px;font-size:10px}.admin-registration-notice .welcome-entry-hint{font-size:10px}.admin-registration-notice .welcome-setup{gap:10px;margin-top:20px;padding-top:18px}.admin-registration-notice .welcome-setup h3{font-size:13px}.admin-registration-notice .welcome-setup p{font-size:12px}.admin-registration-notice .welcome-source-icon{width:32px;height:32px;border-radius:9px}.admin-registration-notice .welcome-defaults{gap:6px}.admin-registration-notice .welcome-defaults span{font-size:9px;padding:4px 6px}.admin-registration-notice .welcome-footer{padding:15px 21px 19px;gap:8px}.admin-registration-notice .welcome-footer>button{font-size:11px;padding:10px 12px}.admin-registration-notice .welcome-footer>a{flex:1;font-size:11px;padding:10px 12px;gap:5px}}
+
+.modal.admin-registration-notice{--welcome-line:color-mix(in srgb,var(--accent) 7%,var(--border));overflow:auto}
+.admin-registration-notice .modal-header h2{display:flex;align-items:center;gap:13px}
+.admin-registration-notice .welcome-success-icon{margin:0}
+.admin-registration-notice .welcome-subtitle{font-size:12px;line-height:1.7;margin:3px 28px 0 87px;color:var(--secondary)}
+.admin-registration-notice .welcome-setup>div{min-width:0;flex:1}
+.admin-registration-notice .welcome-footer>a{color:#fff}
+.admin-registration-notice a:focus-visible,.admin-registration-notice button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:600px){.admin-registration-notice .modal-header h2{gap:10px}.admin-registration-notice .welcome-subtitle{font-size:11px;margin:3px 21px 0 71px}}

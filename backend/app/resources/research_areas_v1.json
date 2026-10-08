@@ -1,0 +1,974 @@
+[
+  {
+    "id": "RA-MATH-001",
+    "discipline": "Mathematics",
+    "name": "Additive Combinatorics",
+    "description": "Study of additive structure in sets and groups, including growth of sumsets and the emergence of arithmetic patterns."
+  },
+  {
+    "id": "RA-MATH-002",
+    "discipline": "Mathematics",
+    "name": "Algebraic Combinatorics",
+    "description": "Study of combinatorial structures using algebraic methods and of algebraic objects through combinatorial models, identities, and invariants."
+  },
+  {
+    "id": "RA-MATH-003",
+    "discipline": "Mathematics",
+    "name": "Algebraic Geometry",
+    "description": "Study of geometric objects defined by polynomial equations and their algebraic, geometric, and arithmetic properties across different fields."
+  },
+  {
+    "id": "RA-MATH-004",
+    "discipline": "Mathematics",
+    "name": "Algebraic Number Theory",
+    "description": "Study of number fields, arithmetic rings, and related algebraic structures to understand divisibility, factorization, and arithmetic symmetries."
+  },
+  {
+    "id": "RA-MATH-005",
+    "discipline": "Mathematics",
+    "name": "Algebraic Topology",
+    "description": "Study of topological spaces through algebraic invariants and homotopical structures that capture connectivity, holes, and deformation properties."
+  },
+  {
+    "id": "RA-MATH-006",
+    "discipline": "Mathematics",
+    "name": "Analytic Number Theory",
+    "description": "Study of arithmetic objects and their distribution using analytic methods, especially estimates, asymptotic behavior, and properties of arithmetic functions."
+  },
+  {
+    "id": "RA-MATH-007",
+    "discipline": "Mathematics",
+    "name": "Approximation Theory",
+    "description": "Study of how functions and other mathematical objects can be approximated, including approximation rates, optimal representations, and error bounds."
+  },
+  {
+    "id": "RA-MATH-008",
+    "discipline": "Mathematics",
+    "name": "Arithmetic Geometry",
+    "description": "Study of geometric objects over arithmetic fields and rings, emphasizing rational points, reduction phenomena, and interactions between geometry and number theory."
+  },
+  {
+    "id": "RA-MATH-009",
+    "discipline": "Mathematics",
+    "name": "Bayesian Statistics",
+    "description": "Study of statistical inference through probability models, prior information, and posterior distributions, including uncertainty assessment and theoretical properties of Bayesian procedures."
+  },
+  {
+    "id": "RA-MATH-010",
+    "discipline": "Mathematics",
+    "name": "Calculus of Variations",
+    "description": "Study of optimization problems for functionals, including the existence, structure, and regularity of minimizers and their governing equations."
+  },
+  {
+    "id": "RA-MATH-011",
+    "discipline": "Mathematics",
+    "name": "Category Theory",
+    "description": "Study of mathematical structures through objects, morphisms, and universal constructions, including relationships between categories and patterns shared across mathematics."
+  },
+  {
+    "id": "RA-MATH-012",
+    "discipline": "Mathematics",
+    "name": "Coding Theory",
+    "description": "Study of mathematical codes for representing and protecting information, including code construction, decoding, and limits on reliable recovery."
+  },
+  {
+    "id": "RA-MATH-013",
+    "discipline": "Mathematics",
+    "name": "Combinatorial Optimization",
+    "description": "Study of optimization over discrete structures, including the geometry, complexity, and algorithmic properties of problems with combinatorial constraints."
+  },
+  {
+    "id": "RA-MATH-014",
+    "discipline": "Mathematics",
+    "name": "Commutative Algebra",
+    "description": "Study of commutative rings, ideals, and modules, including their structural properties and connections with polynomial equations and geometry."
+  },
+  {
+    "id": "RA-MATH-015",
+    "discipline": "Mathematics",
+    "name": "Complex Analysis",
+    "description": "Study of holomorphic functions and complex analytic spaces, including their local behavior, global structure, and interactions with geometry."
+  },
+  {
+    "id": "RA-MATH-016",
+    "discipline": "Mathematics",
+    "name": "Computability Theory",
+    "description": "Study of what can be computed in principle, including degrees of unsolvability, effective mathematical structures, and limits of algorithmic methods."
+  },
+  {
+    "id": "RA-MATH-017",
+    "discipline": "Mathematics",
+    "name": "Computational Algebra",
+    "description": "Study of effective algorithms for algebraic structures, including symbolic calculations, representations, and computational properties of algebraic problems."
+  },
+  {
+    "id": "RA-MATH-018",
+    "discipline": "Mathematics",
+    "name": "Computational Number Theory",
+    "description": "Study of algorithms for arithmetic problems, including computation in number fields and rings, arithmetic invariants, and algorithmic efficiency."
+  },
+  {
+    "id": "RA-MATH-019",
+    "discipline": "Mathematics",
+    "name": "Control Theory",
+    "description": "Study of how dynamical systems can be influenced and observed, including feedback, stability, controllability, and optimal decision strategies."
+  },
+  {
+    "id": "RA-MATH-020",
+    "discipline": "Mathematics",
+    "name": "Convex Geometry",
+    "description": "Study of convex sets and bodies, including their geometric structure, volume, inequalities, and behavior under geometric transformations."
+  },
+  {
+    "id": "RA-MATH-021",
+    "discipline": "Mathematics",
+    "name": "Convex Optimization",
+    "description": "Study of optimization problems with convex structure, including duality, optimality conditions, algorithm design, and guarantees for computational performance."
+  },
+  {
+    "id": "RA-MATH-022",
+    "discipline": "Mathematics",
+    "name": "Design Theory",
+    "description": "Study of combinatorial incidence structures with prescribed balance properties, including their existence, construction, classification, and structural relationships."
+  },
+  {
+    "id": "RA-MATH-023",
+    "discipline": "Mathematics",
+    "name": "Differential Geometry",
+    "description": "Study of smooth geometric spaces through metrics, curvature, connections, and related structures, including local and global geometric properties."
+  },
+  {
+    "id": "RA-MATH-024",
+    "discipline": "Mathematics",
+    "name": "Differential Topology",
+    "description": "Study of smooth manifolds and smooth maps, including classification, embeddings, and the interaction between differentiable structures and topological properties."
+  },
+  {
+    "id": "RA-MATH-025",
+    "discipline": "Mathematics",
+    "name": "Discrete Geometry",
+    "description": "Study of geometric properties of discrete configurations, including points, polytopes, arrangements, and the relations between incidence, packing, and structure."
+  },
+  {
+    "id": "RA-MATH-026",
+    "discipline": "Mathematics",
+    "name": "Dynamical Systems",
+    "description": "Study of systems evolving through iteration or continuous flows, including stability, recurrence, chaotic behavior, and long-term qualitative structure."
+  },
+  {
+    "id": "RA-MATH-027",
+    "discipline": "Mathematics",
+    "name": "Enumerative Combinatorics",
+    "description": "Study of counting combinatorial objects and understanding their structure through bijections, generating functions, identities, and asymptotic enumeration."
+  },
+  {
+    "id": "RA-MATH-028",
+    "discipline": "Mathematics",
+    "name": "Ergodic Theory",
+    "description": "Study of measure-preserving dynamics and their statistical behavior, including recurrence, invariant measures, mixing, and long-term averages of evolving systems."
+  },
+  {
+    "id": "RA-MATH-029",
+    "discipline": "Mathematics",
+    "name": "Extremal Graph Theory",
+    "description": "Study of extremal questions in graph theory, including maximum, minimum, and threshold phenomena under structural constraints."
+  },
+  {
+    "id": "RA-MATH-030",
+    "discipline": "Mathematics",
+    "name": "Finite Geometry",
+    "description": "Study of geometric incidence structures over finite sets or fields, including their construction, symmetry, classification, and combinatorial properties."
+  },
+  {
+    "id": "RA-MATH-031",
+    "discipline": "Mathematics",
+    "name": "Functional Analysis",
+    "description": "Study of vector spaces with analytic structure and the maps between them, including function spaces, duality, and infinite-dimensional phenomena."
+  },
+  {
+    "id": "RA-MATH-032",
+    "discipline": "Mathematics",
+    "name": "Game Theory",
+    "description": "Study of mathematical models of strategic interaction, including equilibrium, incentives, cooperation, and the behavior of interacting decision makers."
+  },
+  {
+    "id": "RA-MATH-033",
+    "discipline": "Mathematics",
+    "name": "General Topology",
+    "description": "Study of topological spaces, continuity, and convergence, including separation properties, compactness, and relationships among general classes of spaces."
+  },
+  {
+    "id": "RA-MATH-034",
+    "discipline": "Mathematics",
+    "name": "Geometric Analysis",
+    "description": "Study of geometric structures using analytical methods, especially differential equations, variational principles, and estimates connecting geometry with regularity."
+  },
+  {
+    "id": "RA-MATH-035",
+    "discipline": "Mathematics",
+    "name": "Geometric Group Theory",
+    "description": "Study of groups through geometric spaces and group actions, including large-scale structure, metric properties, and relationships between algebra and geometry."
+  },
+  {
+    "id": "RA-MATH-036",
+    "discipline": "Mathematics",
+    "name": "Geometric Measure Theory",
+    "description": "Study of geometric properties of sets and measures, including generalized surfaces, rectifiability, dimension, and variational questions about geometric objects."
+  },
+  {
+    "id": "RA-MATH-037",
+    "discipline": "Mathematics",
+    "name": "Group Theory",
+    "description": "Study of groups and their algebraic structure, including subgroups, symmetries, actions, classification, and relationships among families of groups."
+  },
+  {
+    "id": "RA-MATH-038",
+    "discipline": "Mathematics",
+    "name": "Harmonic Analysis",
+    "description": "Study of functions and signals through frequency, oscillation, and decomposition, including transforms, operator estimates, and interactions with geometry."
+  },
+  {
+    "id": "RA-MATH-039",
+    "discipline": "Mathematics",
+    "name": "High-Dimensional Probability",
+    "description": "Study of random objects in high-dimensional spaces, including concentration, geometric behavior, and probabilistic bounds for complex structures."
+  },
+  {
+    "id": "RA-MATH-040",
+    "discipline": "Mathematics",
+    "name": "Homological Algebra",
+    "description": "Study of algebraic structures through complexes, derived constructions, and homological invariants, including relationships among modules, categories, and algebraic resolutions."
+  },
+  {
+    "id": "RA-MATH-041",
+    "discipline": "Mathematics",
+    "name": "Information Theory",
+    "description": "Study of mathematical limits and principles of information representation, transmission, and inference, including uncertainty, compression, and reliable communication."
+  },
+  {
+    "id": "RA-MATH-042",
+    "discipline": "Mathematics",
+    "name": "Inverse Problems",
+    "description": "Study of recovering hidden parameters or structures from observations, including identifiability, stability, reconstruction methods, and the effects of incomplete data."
+  },
+  {
+    "id": "RA-MATH-043",
+    "discipline": "Mathematics",
+    "name": "Lie Theory",
+    "description": "Study of Lie groups, Lie algebras, and continuous symmetries, including their structure, actions, and relationships with geometry and representation theory."
+  },
+  {
+    "id": "RA-MATH-044",
+    "discipline": "Mathematics",
+    "name": "Low-Dimensional Topology",
+    "description": "Study of manifolds and embedded structures in low dimensions, including knots, links, and the topology of three- and four-dimensional spaces."
+  },
+  {
+    "id": "RA-MATH-045",
+    "discipline": "Mathematics",
+    "name": "Mathematical Biology",
+    "description": "Study of biological systems through mathematical models and analysis, including mechanisms of growth, interaction, evolution, and organization across biological scales."
+  },
+  {
+    "id": "RA-MATH-046",
+    "discipline": "Mathematics",
+    "name": "Mathematical Finance",
+    "description": "Study of mathematical models for financial markets and decisions, including asset valuation, risk, optimal strategies, and stochastic market dynamics."
+  },
+  {
+    "id": "RA-MATH-047",
+    "discipline": "Mathematics",
+    "name": "Mathematical Fluid Dynamics",
+    "description": "Study of mathematical models of fluid motion, including solution behavior, stability, singularities, and relationships between flow structure and governing equations."
+  },
+  {
+    "id": "RA-MATH-048",
+    "discipline": "Mathematics",
+    "name": "Mathematical Statistics",
+    "description": "Study of mathematical foundations of statistical inference, including estimation, testing, uncertainty, and the theoretical performance of procedures under probabilistic models."
+  },
+  {
+    "id": "RA-MATH-049",
+    "discipline": "Mathematics",
+    "name": "Matroid Theory",
+    "description": "Study of abstract independence structures, including matroid representations, connectivity, minors, and relationships with graphs, geometry, and optimization."
+  },
+  {
+    "id": "RA-MATH-050",
+    "discipline": "Mathematics",
+    "name": "Model Theory",
+    "description": "Study of mathematical structures through formal languages, including definability, classification, and interactions between logical properties and algebraic or geometric structure."
+  },
+  {
+    "id": "RA-MATH-051",
+    "discipline": "Mathematics",
+    "name": "Noncommutative Algebra",
+    "description": "Study of noncommutative rings and associative algebras, including their modules, representations, structural properties, and relationships with geometry."
+  },
+  {
+    "id": "RA-MATH-052",
+    "discipline": "Mathematics",
+    "name": "Nonlinear Optimization",
+    "description": "Study of optimization involving nonlinear functions and constraints, including optimality, convergence, nonsmooth structure, and methods for challenging objective landscapes."
+  },
+  {
+    "id": "RA-MATH-053",
+    "discipline": "Mathematics",
+    "name": "Numerical Analysis",
+    "description": "Study of numerical methods for mathematical problems, including approximation, discretization, stability, convergence, and quantitative analysis of computational errors."
+  },
+  {
+    "id": "RA-MATH-054",
+    "discipline": "Mathematics",
+    "name": "Operator Algebras",
+    "description": "Study of algebras of operators and their structural properties, including representations, invariants, and connections with topology and mathematical physics."
+  },
+  {
+    "id": "RA-MATH-055",
+    "discipline": "Mathematics",
+    "name": "Operator Theory",
+    "description": "Study of linear operators on function spaces, including their structure, invariant subspaces, spectral properties, and relationships with analysis."
+  },
+  {
+    "id": "RA-MATH-056",
+    "discipline": "Mathematics",
+    "name": "Ordinary Differential Equations",
+    "description": "Study of equations governing continuous evolution with one independent variable, including existence, qualitative behavior, stability, and solution structure."
+  },
+  {
+    "id": "RA-MATH-057",
+    "discipline": "Mathematics",
+    "name": "Partial Differential Equations",
+    "description": "Study of equations involving partial derivatives, including existence, regularity, qualitative behavior, and the mathematical structures of their solutions."
+  },
+  {
+    "id": "RA-MATH-058",
+    "discipline": "Mathematics",
+    "name": "Probabilistic Combinatorics",
+    "description": "Study of random discrete structures and probabilistic phenomena in combinatorics, including typical behavior, thresholds, and the existence of combinatorial configurations."
+  },
+  {
+    "id": "RA-MATH-059",
+    "discipline": "Mathematics",
+    "name": "Proof Theory",
+    "description": "Study of formal proofs and deductive systems, including proof structure, consistency, normalization, and the mathematical strength of logical theories."
+  },
+  {
+    "id": "RA-MATH-060",
+    "discipline": "Mathematics",
+    "name": "Ramsey Theory",
+    "description": "Study of unavoidable patterns in sufficiently large or structured systems, especially configurations forced by partitions, colorings, and related combinatorial constraints."
+  },
+  {
+    "id": "RA-MATH-061",
+    "discipline": "Mathematics",
+    "name": "Random Matrix Theory",
+    "description": "Study of matrices with random entries or distributions, including eigenvalues, spectral statistics, limiting behavior, and universality across matrix ensembles."
+  },
+  {
+    "id": "RA-MATH-062",
+    "discipline": "Mathematics",
+    "name": "Real Analysis",
+    "description": "Study of real-valued functions and their limiting behavior, including differentiation, integration, convergence, and the analytic structure of function spaces."
+  },
+  {
+    "id": "RA-MATH-063",
+    "discipline": "Mathematics",
+    "name": "Representation Theory",
+    "description": "Study of algebraic structures through their actions on vector spaces, including classification, decomposition, and relationships between representations and geometric or combinatorial structure."
+  },
+  {
+    "id": "RA-MATH-064",
+    "discipline": "Mathematics",
+    "name": "Set Theory",
+    "description": "Study of sets and infinite mathematical structures, including axioms, cardinality, definability, and the consequences of different foundational assumptions."
+  },
+  {
+    "id": "RA-MATH-065",
+    "discipline": "Mathematics",
+    "name": "Spectral Theory",
+    "description": "Study of spectra and spectral behavior of operators, including eigenvalue distributions, spectral decompositions, and their connections with dynamics and differential equations."
+  },
+  {
+    "id": "RA-MATH-066",
+    "discipline": "Mathematics",
+    "name": "Statistical Mechanics",
+    "description": "Study of mathematical models of interacting many-component systems, including equilibrium states, phase transitions, and relationships between microscopic interactions and macroscopic behavior."
+  },
+  {
+    "id": "RA-MATH-067",
+    "discipline": "Mathematics",
+    "name": "Stochastic Analysis",
+    "description": "Study of analytical questions involving randomness, including stochastic equations, random evolution, and the regularity and structure of stochastic models."
+  },
+  {
+    "id": "RA-MATH-068",
+    "discipline": "Mathematics",
+    "name": "Stochastic Processes",
+    "description": "Study of mathematical models of random evolution, including dependence, transition behavior, long-term distributions, and probabilistic structure over time or space."
+  },
+  {
+    "id": "RA-MATH-069",
+    "discipline": "Mathematics",
+    "name": "Structural Graph Theory",
+    "description": "Study of graph structure through classes, decompositions, containment relations, and characterizations that explain global properties of graphs."
+  },
+  {
+    "id": "RA-MATH-070",
+    "discipline": "Mathematics",
+    "name": "Symplectic Geometry",
+    "description": "Study of spaces with symplectic structures, including Hamiltonian dynamics, geometric invariants, and relationships between symplectic and other geometric properties."
+  },
+  {
+    "id": "RA-MATH-071",
+    "discipline": "Mathematics",
+    "name": "Topological Data Analysis",
+    "description": "Study of data through topological structures and invariants, including persistence, multiscale shape, and the stability of topological representations."
+  },
+  {
+    "id": "RA-MATH-072",
+    "discipline": "Mathematics",
+    "name": "Uncertainty Quantification",
+    "description": "Study of how uncertainty is represented, propagated, and assessed in mathematical models and computations, including sensitivity and reliability of predictions."
+  },
+  {
+    "id": "RA-CS-001",
+    "discipline": "Computer Science",
+    "name": "Algorithmic Game Theory",
+    "description": "Study of computational aspects of strategic interaction, including mechanisms, equilibria, incentives, and the efficiency of outcomes in systems with competing participants."
+  },
+  {
+    "id": "RA-CS-002",
+    "discipline": "Computer Science",
+    "name": "Approximation Algorithms",
+    "description": "Study of efficient algorithms that approximate optimal solutions, including provable quality guarantees, computational tradeoffs, and limits on achievable approximation."
+  },
+  {
+    "id": "RA-CS-003",
+    "discipline": "Computer Science",
+    "name": "Automata Theory",
+    "description": "Study of abstract computational machines and formal languages, including expressiveness, recognition, transformations, and decision problems for finite and infinite behaviors."
+  },
+  {
+    "id": "RA-CS-004",
+    "discipline": "Computer Science",
+    "name": "Compilers",
+    "description": "Study of translating and optimizing programs across languages and execution targets, including code generation, intermediate representations, and correctness of compilation."
+  },
+  {
+    "id": "RA-CS-005",
+    "discipline": "Computer Science",
+    "name": "Computational Biology",
+    "description": "Study of computational models and algorithms for biological data and processes, including molecular information, biological networks, and mechanisms across biological scales."
+  },
+  {
+    "id": "RA-CS-006",
+    "discipline": "Computer Science",
+    "name": "Computational Complexity",
+    "description": "Study of the resources required for computation, including problem difficulty, complexity classes, reductions, and limits of efficient algorithms."
+  },
+  {
+    "id": "RA-CS-007",
+    "discipline": "Computer Science",
+    "name": "Computational Geometry",
+    "description": "Study of algorithms and data structures for geometric objects, including spatial relationships, geometric computation, and guarantees on efficiency and correctness."
+  },
+  {
+    "id": "RA-CS-008",
+    "discipline": "Computer Science",
+    "name": "Computer Architecture",
+    "description": "Study of the organization and design of computing hardware, including processors, memory systems, accelerators, and tradeoffs among performance, efficiency, and programmability."
+  },
+  {
+    "id": "RA-CS-009",
+    "discipline": "Computer Science",
+    "name": "Computer Graphics",
+    "description": "Study of computational representation and synthesis of visual content, including geometric modeling, rendering, animation, and simulation of visual phenomena."
+  },
+  {
+    "id": "RA-CS-010",
+    "discipline": "Computer Science",
+    "name": "Computer Networks",
+    "description": "Study of communication among computing devices, including protocols, network organization, resource management, and the performance and reliability of data exchange."
+  },
+  {
+    "id": "RA-CS-011",
+    "discipline": "Computer Science",
+    "name": "Computer Security",
+    "description": "Study of threats to computing systems and methods for protecting them, including vulnerabilities, adversarial behavior, and mechanisms for trustworthy operation."
+  },
+  {
+    "id": "RA-CS-012",
+    "discipline": "Computer Science",
+    "name": "Computer Vision",
+    "description": "Study of computational interpretation of visual observations, including image and video understanding, scene structure, and the extraction of visual information."
+  },
+  {
+    "id": "RA-CS-013",
+    "discipline": "Computer Science",
+    "name": "Cryptography",
+    "description": "Study of mathematical and computational methods for securing information and interactions, including protocols, adversarial guarantees, and the assumptions underlying security."
+  },
+  {
+    "id": "RA-CS-014",
+    "discipline": "Computer Science",
+    "name": "Data Mining",
+    "description": "Study of discovering useful patterns and knowledge from data, including structural relationships, unusual behavior, and methods for exploring large or complex datasets."
+  },
+  {
+    "id": "RA-CS-015",
+    "discipline": "Computer Science",
+    "name": "Data Privacy",
+    "description": "Study of protecting sensitive information during data collection, analysis, and sharing, including disclosure risks, privacy guarantees, and tradeoffs with data utility."
+  },
+  {
+    "id": "RA-CS-016",
+    "discipline": "Computer Science",
+    "name": "Data Structures",
+    "description": "Study of organizing and representing data to support efficient computation, including operation costs, space usage, and tradeoffs for different computational models."
+  },
+  {
+    "id": "RA-CS-017",
+    "discipline": "Computer Science",
+    "name": "Databases",
+    "description": "Study of data management systems, including data models, query processing, transactions, and the organization of reliable and efficient access to stored information."
+  },
+  {
+    "id": "RA-CS-018",
+    "discipline": "Computer Science",
+    "name": "Distributed Systems",
+    "description": "Study of computation across interacting components, including coordination, consistency, fault tolerance, and the design and limits of distributed algorithms and services."
+  },
+  {
+    "id": "RA-CS-019",
+    "discipline": "Computer Science",
+    "name": "Embedded Systems",
+    "description": "Study of computing integrated into physical devices, including system design, resource constraints, software-hardware interaction, and reliable operation within physical environments."
+  },
+  {
+    "id": "RA-CS-020",
+    "discipline": "Computer Science",
+    "name": "Formal Verification",
+    "description": "Study of establishing system correctness through formal specifications and reasoning, including proofs, automated checking, and guarantees about software or hardware behavior."
+  },
+  {
+    "id": "RA-CS-021",
+    "discipline": "Computer Science",
+    "name": "Graph Algorithms",
+    "description": "Study of algorithms for problems on graphs, including traversal, connectivity, optimization, and the computational use of graph structure."
+  },
+  {
+    "id": "RA-CS-022",
+    "discipline": "Computer Science",
+    "name": "Graph Machine Learning",
+    "description": "Study of learning from graph-structured data, including representations, prediction, generation, and relationships between learning behavior and graph structure."
+  },
+  {
+    "id": "RA-CS-023",
+    "discipline": "Computer Science",
+    "name": "High-Performance Computing",
+    "description": "Study of achieving efficient and scalable computation for demanding workloads, including parallel execution, performance analysis, and interaction between algorithms, software, and hardware."
+  },
+  {
+    "id": "RA-CS-024",
+    "discipline": "Computer Science",
+    "name": "Human-Computer Interaction",
+    "description": "Study of how people interact with computing systems, including interface design, user behavior, accessibility, and evaluation of interactive experiences."
+  },
+  {
+    "id": "RA-CS-025",
+    "discipline": "Computer Science",
+    "name": "Information Retrieval",
+    "description": "Study of finding and ranking relevant information, including search models, representations, user needs, and evaluation of retrieval effectiveness."
+  },
+  {
+    "id": "RA-CS-026",
+    "discipline": "Computer Science",
+    "name": "Knowledge Representation and Reasoning",
+    "description": "Study of explicit representations of knowledge and computational inference over them, including logical formalisms, reasoning procedures, and decision support."
+  },
+  {
+    "id": "RA-CS-027",
+    "discipline": "Computer Science",
+    "name": "Machine Learning",
+    "description": "Study of computational systems that learn patterns or behavior from data and experience, including representations, generalization, optimization, and learning guarantees."
+  },
+  {
+    "id": "RA-CS-028",
+    "discipline": "Computer Science",
+    "name": "Mobile Computing",
+    "description": "Study of computing shaped by mobile devices and users, including mobility, context, resource constraints, and interaction with networked services."
+  },
+  {
+    "id": "RA-CS-029",
+    "discipline": "Computer Science",
+    "name": "Natural Language Processing",
+    "description": "Study of computational analysis and generation of human language, including linguistic representations, language understanding, and communication through text or speech."
+  },
+  {
+    "id": "RA-CS-030",
+    "discipline": "Computer Science",
+    "name": "Online Algorithms",
+    "description": "Study of algorithms that make decisions as information arrives, including competitive performance, limited information, and tradeoffs between immediate and future outcomes."
+  },
+  {
+    "id": "RA-CS-031",
+    "discipline": "Computer Science",
+    "name": "Operating Systems",
+    "description": "Study of managing execution and computing resources, including scheduling, isolation, memory management, and abstractions supporting reliable and efficient software operation."
+  },
+  {
+    "id": "RA-CS-032",
+    "discipline": "Computer Science",
+    "name": "Parameterized Algorithms",
+    "description": "Study of algorithms whose efficiency depends on selected problem parameters, including structural tractability, preprocessing, and limits of parameter-based computation."
+  },
+  {
+    "id": "RA-CS-033",
+    "discipline": "Computer Science",
+    "name": "Program Analysis",
+    "description": "Study of automatically determining properties of programs, including behavior, data flow, correctness conditions, and analyses supporting software development and optimization."
+  },
+  {
+    "id": "RA-CS-034",
+    "discipline": "Computer Science",
+    "name": "Programming Languages",
+    "description": "Study of programming language design and foundations, including semantics, type systems, expressiveness, and abstractions for constructing and reasoning about programs."
+  },
+  {
+    "id": "RA-CS-035",
+    "discipline": "Computer Science",
+    "name": "Quantum Computing",
+    "description": "Study of computation using quantum systems, including algorithms, computational limits, error correction, and the design of quantum computational processes."
+  },
+  {
+    "id": "RA-CS-036",
+    "discipline": "Computer Science",
+    "name": "Randomized Algorithms",
+    "description": "Study of algorithms that use random choices, including correctness, expected performance, probability of error, and relationships between randomness and computational efficiency."
+  },
+  {
+    "id": "RA-CS-037",
+    "discipline": "Computer Science",
+    "name": "Real-Time Systems",
+    "description": "Study of computing systems with timing requirements, including scheduling, predictability, resource management, and guarantees about completion within required deadlines."
+  },
+  {
+    "id": "RA-CS-038",
+    "discipline": "Computer Science",
+    "name": "Recommender Systems",
+    "description": "Study of computational methods for personalized selection and ranking, including preference modeling, recommendation quality, user feedback, and interaction over time."
+  },
+  {
+    "id": "RA-CS-039",
+    "discipline": "Computer Science",
+    "name": "Reinforcement Learning",
+    "description": "Study of learning to make sequential decisions through interaction and feedback, including exploration, policy improvement, and long-term outcomes."
+  },
+  {
+    "id": "RA-CS-040",
+    "discipline": "Computer Science",
+    "name": "Robotics",
+    "description": "Study of intelligent physical systems that perceive and act, including motion, planning, control, manipulation, and interaction with people and environments."
+  },
+  {
+    "id": "RA-CS-041",
+    "discipline": "Computer Science",
+    "name": "Software Architecture",
+    "description": "Study of the high-level organization of software systems, including architectural structures, design decisions, and their effects on system qualities and evolution."
+  },
+  {
+    "id": "RA-CS-042",
+    "discipline": "Computer Science",
+    "name": "Software Maintenance and Evolution",
+    "description": "Study of understanding and changing software over its lifetime, including adaptation, refactoring, modernization, and the effects of change on software quality."
+  },
+  {
+    "id": "RA-CS-043",
+    "discipline": "Computer Science",
+    "name": "Software Testing",
+    "description": "Study of evaluating software through execution and observation, including test generation, coverage, fault detection, and evidence about software quality."
+  },
+  {
+    "id": "RA-CS-044",
+    "discipline": "Computer Science",
+    "name": "Speech and Audio Processing",
+    "description": "Study of computational analysis and generation of acoustic signals, including speech recognition, synthesis, auditory representations, and understanding of sound."
+  },
+  {
+    "id": "RA-CS-045",
+    "discipline": "Computer Science",
+    "name": "Storage Systems",
+    "description": "Study of systems for persistent data storage, including organization, durability, access performance, and management of data across storage devices and services."
+  },
+  {
+    "id": "RA-CS-046",
+    "discipline": "Computer Science",
+    "name": "Symbolic Computation",
+    "description": "Study of algorithms and systems for manipulating mathematical expressions and structures exactly, including symbolic reasoning, simplification, and computational representations."
+  },
+  {
+    "id": "RA-CS-047",
+    "discipline": "Computer Science",
+    "name": "Visualization",
+    "description": "Study of visual representations that support understanding of data and models, including visual encoding, interaction, perception, and evaluation of analytical insight."
+  },
+  {
+    "id": "RA-CS-048",
+    "discipline": "Computer Science",
+    "name": "Wireless Networks",
+    "description": "Study of communication networks using wireless links, including access protocols, interference, mobility, and the performance and reliability of connected systems."
+  },
+  {
+    "id": "RA-MATH-073",
+    "discipline": "Mathematics",
+    "name": "Algebraic Graph Theory",
+    "description": "Study of graphs through algebraic structures and symmetries, including graph invariants, association schemes, and interactions between combinatorics and algebra."
+  },
+  {
+    "id": "RA-MATH-074",
+    "discipline": "Mathematics",
+    "name": "Algebraic K-Theory",
+    "description": "Study of algebraic invariants of rings, categories, and geometric objects through K-groups, including their computation and structural relationships."
+  },
+  {
+    "id": "RA-MATH-075",
+    "discipline": "Mathematics",
+    "name": "Algebraic Statistics",
+    "description": "Study of statistical models using algebraic, geometric, and combinatorial structures, including model identifiability, inference, and computational properties."
+  },
+  {
+    "id": "RA-MATH-076",
+    "discipline": "Mathematics",
+    "name": "Causal Inference",
+    "description": "Study of identifying and estimating causal relationships from observations and interventions, including assumptions, uncertainty, and the interpretation of causal effects."
+  },
+  {
+    "id": "RA-MATH-077",
+    "discipline": "Mathematics",
+    "name": "Complex Geometry",
+    "description": "Study of geometric spaces with complex structures, including holomorphic geometry, complex manifolds, and interactions with algebraic and differential geometry."
+  },
+  {
+    "id": "RA-MATH-078",
+    "discipline": "Mathematics",
+    "name": "Computational Statistics",
+    "description": "Study of computational methods for statistical inference, including simulation, numerical estimation, resampling, and the accuracy and efficiency of inference algorithms."
+  },
+  {
+    "id": "RA-MATH-079",
+    "discipline": "Mathematics",
+    "name": "Homotopy Theory",
+    "description": "Study of spaces and related structures up to continuous deformation, including homotopy invariants, stable phenomena, and algebraic models of topology."
+  },
+  {
+    "id": "RA-MATH-080",
+    "discipline": "Mathematics",
+    "name": "Knot Theory",
+    "description": "Study of knots, links, and related embeddings, including their invariants, classification, geometric properties, and relationships with low-dimensional spaces."
+  },
+  {
+    "id": "RA-MATH-081",
+    "discipline": "Mathematics",
+    "name": "Noncommutative Geometry",
+    "description": "Study of geometric structures described through noncommutative algebras, including geometric invariants, analytical structures, and connections with topology and physics."
+  },
+  {
+    "id": "RA-MATH-082",
+    "discipline": "Mathematics",
+    "name": "Nonparametric Statistics",
+    "description": "Study of statistical inference with flexible or infinite-dimensional models, including estimation, testing, adaptation, and theoretical guarantees under limited structural assumptions."
+  },
+  {
+    "id": "RA-MATH-083",
+    "discipline": "Mathematics",
+    "name": "Optimal Transport",
+    "description": "Study of optimal ways to transform or couple distributions, including transport maps, geometric structure, variational principles, and computational methods."
+  },
+  {
+    "id": "RA-MATH-084",
+    "discipline": "Mathematics",
+    "name": "Random Graph Theory",
+    "description": "Study of graphs generated by random mechanisms, including typical structure, thresholds, evolution, and relationships between randomness and graph properties."
+  },
+  {
+    "id": "RA-MATH-085",
+    "discipline": "Mathematics",
+    "name": "Spectral Graph Theory",
+    "description": "Study of graph structure through eigenvalues and eigenvectors of associated matrices, including connectivity, expansion, partitioning, and spectral inequalities."
+  },
+  {
+    "id": "RA-CS-049",
+    "discipline": "Computer Science",
+    "name": "Active Learning",
+    "description": "Study of learning systems that choose informative observations or queries, including annotation efficiency, selection strategies, and performance under limited supervision."
+  },
+  {
+    "id": "RA-CS-050",
+    "discipline": "Computer Science",
+    "name": "Adversarial Machine Learning",
+    "description": "Study of learning under deliberate manipulation, including attacks, defenses, robustness guarantees, and the effects of adversarial data or interactions."
+  },
+  {
+    "id": "RA-CS-051",
+    "discipline": "Computer Science",
+    "name": "Automated Machine Learning",
+    "description": "Study of automating the design and configuration of learning systems, including model selection, optimization of learning pipelines, and computational efficiency."
+  },
+  {
+    "id": "RA-CS-052",
+    "discipline": "Computer Science",
+    "name": "Automated Planning",
+    "description": "Study of computational methods for constructing and evaluating action plans, including goals, constraints, uncertainty, and the organization of sequential decisions."
+  },
+  {
+    "id": "RA-CS-053",
+    "discipline": "Computer Science",
+    "name": "Cloud Computing",
+    "description": "Study of computing delivered through shared elastic infrastructure, including resource provisioning, service organization, isolation, and performance of cloud platforms."
+  },
+  {
+    "id": "RA-CS-054",
+    "discipline": "Computer Science",
+    "name": "Computational Social Science",
+    "description": "Study of social behavior and collective phenomena using computational data and models, including social networks, interactions, and population dynamics."
+  },
+  {
+    "id": "RA-CS-055",
+    "discipline": "Computer Science",
+    "name": "Computer-Supported Cooperative Work",
+    "description": "Study of technologies supporting social and collaborative activity, including group interaction, coordination, organizational practices, and the design of cooperative systems."
+  },
+  {
+    "id": "RA-CS-056",
+    "discipline": "Computer Science",
+    "name": "Continual Learning",
+    "description": "Study of learning from evolving sequences of data or tasks, including knowledge retention, adaptation, forgetting, and transfer across learning stages."
+  },
+  {
+    "id": "RA-CS-057",
+    "discipline": "Computer Science",
+    "name": "Deep Learning",
+    "description": "Study of learning with multilayer neural representations, including architectures, optimization, generalization, and the behavior of deep learning systems."
+  },
+  {
+    "id": "RA-CS-058",
+    "discipline": "Computer Science",
+    "name": "Domain Adaptation",
+    "description": "Study of adapting learning systems across different data distributions, including distribution shifts, transferable representations, and prediction in target domains."
+  },
+  {
+    "id": "RA-CS-059",
+    "discipline": "Computer Science",
+    "name": "Edge Computing",
+    "description": "Study of computation near users, devices, and data sources, including placement, coordination, resource constraints, and interaction between edge and cloud infrastructure."
+  },
+  {
+    "id": "RA-CS-060",
+    "discipline": "Computer Science",
+    "name": "Explainable AI",
+    "description": "Study of making computational intelligence understandable, including explanations, interpretability, evaluation, and relationships between model behavior and human understanding."
+  },
+  {
+    "id": "RA-CS-061",
+    "discipline": "Computer Science",
+    "name": "Federated Learning",
+    "description": "Study of collaborative learning with decentralized data, including optimization, communication, heterogeneity, privacy, and coordination across participating clients or institutions."
+  },
+  {
+    "id": "RA-CS-062",
+    "discipline": "Computer Science",
+    "name": "Few-Shot Learning",
+    "description": "Study of learning and generalizing from small amounts of task-specific supervision, including prior knowledge, adaptation, and performance in data-limited settings."
+  },
+  {
+    "id": "RA-CS-063",
+    "discipline": "Computer Science",
+    "name": "Generative Modeling",
+    "description": "Study of learning models that represent distributions and generate data, including likelihood, sample quality, controllability, and the structure of generated outputs."
+  },
+  {
+    "id": "RA-CS-064",
+    "discipline": "Computer Science",
+    "name": "Large Language Models",
+    "description": "Study of large-scale language models, including training, adaptation, capabilities, evaluation, and the behavior of language-based computational systems."
+  },
+  {
+    "id": "RA-CS-065",
+    "discipline": "Computer Science",
+    "name": "Meta-Learning",
+    "description": "Study of systems that improve how they learn from experience across tasks, including adaptation, learned learning procedures, and generalization to new tasks."
+  },
+  {
+    "id": "RA-CS-066",
+    "discipline": "Computer Science",
+    "name": "Multi-Agent Systems",
+    "description": "Study of interacting computational agents, including coordination, communication, cooperation, negotiation, and the behavior of distributed autonomous systems."
+  },
+  {
+    "id": "RA-CS-067",
+    "discipline": "Computer Science",
+    "name": "Multi-Task Learning",
+    "description": "Study of learning several tasks together, including shared representations, relationships among tasks, transfer effects, and performance across related objectives."
+  },
+  {
+    "id": "RA-CS-068",
+    "discipline": "Computer Science",
+    "name": "Multimodal Machine Learning",
+    "description": "Study of learning from multiple kinds of data, including cross-modal representations, alignment, fusion, and reasoning across complementary information sources."
+  },
+  {
+    "id": "RA-CS-069",
+    "discipline": "Computer Science",
+    "name": "Online Learning",
+    "description": "Study of learning through sequential predictions and feedback, including regret, adaptation, information constraints, and performance in changing environments."
+  },
+  {
+    "id": "RA-CS-070",
+    "discipline": "Computer Science",
+    "name": "Representation Learning",
+    "description": "Study of learning useful representations of data, including latent structure, invariance, expressiveness, and relationships between representations and downstream behavior."
+  },
+  {
+    "id": "RA-CS-071",
+    "discipline": "Computer Science",
+    "name": "Requirements Engineering",
+    "description": "Study of discovering, specifying, analyzing, and managing software requirements, including stakeholder needs, validation, and requirements evolution throughout development."
+  },
+  {
+    "id": "RA-CS-072",
+    "discipline": "Computer Science",
+    "name": "Self-Supervised Learning",
+    "description": "Study of learning from supervision constructed from the data itself, including learning objectives, representations, transfer, and theoretical properties."
+  },
+  {
+    "id": "RA-CS-073",
+    "discipline": "Computer Science",
+    "name": "Semi-Supervised Learning",
+    "description": "Study of learning from combinations of labeled and unlabeled data, including assumptions, algorithms, generalization, and the value of partial supervision."
+  },
+  {
+    "id": "RA-CS-074",
+    "discipline": "Computer Science",
+    "name": "Statistical Learning Theory",
+    "description": "Study of mathematical guarantees for learning from data, including learnability, generalization, sample complexity, and limits of statistical prediction."
+  },
+  {
+    "id": "RA-CS-075",
+    "discipline": "Computer Science",
+    "name": "Transfer Learning",
+    "description": "Study of reusing knowledge across tasks or domains, including transferable representations, adaptation strategies, and conditions for beneficial or harmful transfer."
+  },
+  {
+    "id": "RA-CS-076",
+    "discipline": "Computer Science",
+    "name": "Ubiquitous Computing",
+    "description": "Study of computing integrated into everyday environments, including context awareness, pervasive sensing, interaction, and coordination among embedded computational services."
+  },
+  {
+    "id": "RA-CS-077",
+    "discipline": "Computer Science",
+    "name": "Zero-Shot Learning",
+    "description": "Study of generalizing to tasks or categories without task-specific training examples, including semantic knowledge, transfer, and evaluation of unseen concepts."
+  }
+]

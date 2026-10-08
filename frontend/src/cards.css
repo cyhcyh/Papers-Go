@@ -1,0 +1,184 @@
+/* Public card presentation. Navigation, page columns and feed snapping stay in their existing stylesheets. */
+.research-card, .paper-card.research-card {
+  --card-accent: #3568ff;
+  --card-tint: color-mix(in srgb, var(--card-accent) 5%, var(--card));
+  --card-line: color-mix(in srgb, var(--card-accent) 8%, var(--border));
+  --card-muted: color-mix(in srgb, var(--secondary) 78%, var(--muted));
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 22px;
+  box-shadow: 0 4px 22px #254bc007;
+}
+.dark .research-card { --card-accent: #7195ff; box-shadow: 0 4px 22px #0002; }
+
+.paper-card.research-card { padding: 22px; }
+.paper-card-content { min-width: 0; }
+.paper-card.research-card .paper-top { gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+.paper-card.research-card .tags { gap: 6px; }
+.paper-card.research-card .tag { padding: 5px 9px; line-height: 1.35; }
+.paper-card.research-card .source-tag { display: inline-flex; align-items: center; gap: 6px; background: var(--card-tint); color: var(--card-accent); }
+.paper-card.research-card .source-tag:before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.paper-card.research-card .topic-tag { background: var(--soft); color: var(--card-muted); }
+.paper-card.research-card .paper-meta { gap: 8px; align-items: center; }
+.paper-card.research-card .recommendation-score { color: var(--card-accent); font-weight: 500; }
+.paper-card.research-card .paper-date { color: var(--card-muted); }
+.paper-card.research-card .recommendation-score + .paper-date { padding-left: 8px; border-left: 1px solid var(--card-line); }
+.paper-card.research-card h2 { font-family: inherit; font-weight: 650; line-height: 1.4; letter-spacing: -.3px; }
+.paper-card.research-card .paper-title-button { display: block; width: 100%; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--text); font: inherit; text-align: left; line-height: inherit; }
+.paper-card.research-card .paper-title-button:hover { background: transparent; }
+.paper-card.research-card .original-title { margin-top: 7px; color: var(--card-muted); line-height: 1.65; }
+.paper-card.research-card .paper-authors { margin-top: 8px; color: var(--card-muted); }
+
+.paper-card.research-card .paper-brief { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.paper-card.research-card .paper-brief-block { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 9px; padding: 12px; border-radius: 12px; background: var(--card-tint); min-width: 0; }
+.paper-card.research-card .paper-brief-icon { grid-column: 1; grid-row: 1 / span 2; align-self: start; width: 28px; height: 28px; padding: 5px; border-radius: 50%; background: color-mix(in srgb, var(--card-accent) 9%, var(--card)); color: var(--card-accent); }
+.paper-card.research-card .contribution .paper-brief-icon { color: #df951d; background: color-mix(in srgb, #f5b64f 14%, var(--card)); }
+.paper-card.research-card .paper-brief-block > span { grid-column: 2; margin: 0; color: var(--text); font-size: var(--paper-reading-size); font-weight: 600; line-height: 1.75; }
+.paper-card.research-card .paper-brief-block > p { grid-column: 2; min-width: 0; margin: 0; color: var(--card-muted); font-size: 13px; line-height: 1.75; }
+.paper-card.research-card .abstract-preview { display: block; flex-shrink: 0; margin-top: 9px; padding: 0; border: 0; border-radius: 11px; background: var(--card-tint); overflow: hidden; }
+.paper-card.research-card .abstract-preview > summary { display: flex; align-items: center; gap: 9px; padding: 10px 12px; font-size: 13px; line-height: 1.6; color: var(--card-muted); list-style: none; }
+.paper-card.research-card .abstract-preview > summary:before { content: none; }
+.paper-card.research-card .abstract-preview > summary::-webkit-details-marker { display: none; }
+.paper-card.research-card .abstract-preview > summary > svg { color: var(--card-accent); flex-shrink: 0; }
+.paper-card.research-card .abstract-chevron { margin-left: auto; transition: transform .15s; }
+.paper-card.research-card .abstract-preview[open] .abstract-chevron { transform: rotate(180deg); }
+.paper-card.research-card .abstract-preview > p { margin: 0; padding: 0 12px 12px; font-size: 13px; line-height: 1.75; color: var(--card-muted); overflow-wrap: anywhere; }
+.paper-card.research-card .signals { margin-top: 11px; }
+.paper-card.research-card > .paper-actions { flex-wrap: wrap; gap: 4px; margin-top: 14px; padding-top: 11px; border-top: 1px solid var(--card-line); }
+.paper-card.research-card .paper-actions button, .paper-card.research-card .paper-actions a { padding: 5px 2px; border: 0; background: transparent; color: var(--card-muted); justify-content: center; line-height: 1.5; }
+.paper-card.research-card .paper-actions button:hover:not(:disabled), .paper-card.research-card .paper-actions a:hover { color: var(--card-accent); background: var(--card-tint); }
+.paper-card.research-card .paper-feedback-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto; padding-left: 8px; border-left: 1px solid var(--card-line); }
+.paper-card.research-card .paper-feedback-actions:empty { display: none; }
+.paper-card.research-card .paper-feedback-actions .feedback-button { margin-left: 0; }
+.paper-card.research-card .paper-actions .feedback-button.is-active { color: var(--card-accent); }
+.paper-card.research-card .paper-actions .dismiss span { display: inline; }
+
+.rightbar .research-card.daily-panel, .rightbar .research-card.recommendations, .rightbar .research-card.interest-trends { padding: 16px; }
+.research-card.daily-panel h3, .research-card.recommendations h3, .research-card.interest-trends h3, .research-card.interest-trends .direction-short strong { color: var(--text); }
+.research-card.daily-panel .eyebrow { color: var(--card-muted); }
+.research-card.daily-panel .daily-counts { gap: 0; }
+.research-card.daily-panel .daily-counts > div { flex: 1; align-items: center; min-width: 0; }
+.research-card.daily-panel .daily-counts > div + div { border-left: 1px solid var(--card-line); }
+.research-card.daily-panel .daily-counts strong { font-family: inherit; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--card-accent); }
+.research-card.daily-panel .daily-counts span { color: var(--card-muted); }
+.research-card.recommendations .section-heading { margin-bottom: 6px; }
+.research-card.recommendations .suggestion { width: 100%; align-items: flex-start; gap: 8px; padding: 6px 0; border: 0; border-radius: 0; text-align: left; background: transparent; }
+.research-card.recommendations .suggestion + .suggestion { border-top: 1px solid var(--card-line); }
+.research-card.recommendations .suggestion > span:nth-child(2) { min-width: 0; flex: 1; }
+.research-card.recommendations .suggestion-number { flex: 0 0 21px; color: var(--card-accent); font-weight: 500; font-variant-numeric: tabular-nums; }
+.research-card.recommendations .suggestion > svg { color: var(--card-muted); flex-shrink: 0; margin-top: 3px; }
+.research-card.recommendations .suggestion strong { color: var(--text); }
+.research-card.recommendations .suggestion small { color: var(--card-muted); }
+.research-card.recommendations .suggestion:hover strong { color: var(--card-accent); }
+.research-card.interest-trends .section-heading h3 { display: flex; align-items: center; gap: 8px; }
+.research-card.interest-trends .section-heading h3 > svg { width: 28px; height: 28px; padding: 6px; border-radius: 8px; background: var(--card-tint); color: var(--card-accent); flex-shrink: 0; }
+.research-card.interest-trends .direction-short p, .research-card.interest-trends > p { color: var(--card-muted); }
+.research-card.interest-trends .trend-more { gap: 6px; padding: 6px 11px; border-radius: 30px; background: var(--card-tint); color: var(--card-accent); }
+
+@media (max-height: 780px) and (min-width: 601px) {
+  .rightbar .research-card.daily-panel, .rightbar .research-card.recommendations, .rightbar .research-card.interest-trends { padding: 11px 13px; }
+  .research-card.recommendations .suggestion { padding: 3px 0; }
+  .research-card.interest-trends .section-heading h3 > svg { width: 23px; height: 23px; padding: 4px; }
+  .research-card.interest-trends .trend-more { padding: 4px 9px; }
+}
+
+@media (max-width: 600px) {
+  .paper-card.research-card { padding: 18px; border-radius: 20px; }
+  .paper-card.research-card .paper-brief-block { padding: 10px; }
+  .feed-item .paper-card.research-card { padding: 16px 64px 74px 21px; border-radius: 24px; }
+  .feed-item .paper-card-content { height: 100%; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .feed-item .paper-card.research-card .paper-top { margin-bottom: 9px; gap: 6px; flex-shrink: 0; }
+  .feed-item .paper-card.research-card .tags { gap: 4px; }
+  .feed-item .paper-card.research-card .tag { padding: 4px 7px; }
+  .feed-item .paper-card.research-card .paper-meta { flex-direction: row; flex-wrap: nowrap; gap: 6px; }
+  .feed-item .paper-card.research-card .recommendation-score + .paper-date { padding-left: 6px; }
+  .feed-item .paper-card.research-card h2, .feed-item .paper-card.research-card .original-title, .feed-item .paper-card.research-card .paper-authors { flex-shrink: 0; }
+  .feed-item .paper-card.research-card .paper-title-button { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .feed-item .paper-card.research-card .original-title { margin-top: 5px; }
+  .feed-item .paper-card.research-card .paper-authors { margin-top: 7px; }
+  .feed-item .paper-card.research-card .paper-brief { flex: 0 1 auto; min-height: 0; margin-top: 12px; gap: 8px; }
+  .feed-item .paper-card.research-card .paper-brief-block { flex: 0 1 auto; min-height: 0; grid-template-columns: 22px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); align-content: start; gap: 3px 7px; padding: 9px; overflow: hidden; }
+  .feed-item .paper-card.research-card .paper-brief-icon { width: 22px; height: 22px; padding: 3px; grid-row: 1; }
+  .feed-item .paper-card.research-card .paper-brief-block > p { grid-column: 1 / -1; display: block; -webkit-line-clamp: unset; min-height: 0; max-height: 7em; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: none; }
+  .feed-item .paper-card.research-card .paper-brief-block > p::-webkit-scrollbar { display: none; }
+  .feed-item .paper-card.research-card .paper-brief-block > span { font-size: var(--paper-reading-size); }
+  .feed-item .paper-card.research-card .abstract-preview { display: block; margin-top: 9px; }
+  .feed-item .paper-card.research-card .abstract-preview > summary { padding: 9px 10px; }
+  .feed-item .paper-card.research-card .signals { flex-shrink: 0; }
+  .feed-item .paper-card.research-card:has(.abstract-preview[open]) .paper-card-content { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+  .feed-item .paper-card.research-card:has(.abstract-preview[open]) .paper-card-content::-webkit-scrollbar { display: none; }
+  .feed-item .paper-card.research-card:has(.abstract-preview[open]) .paper-brief { flex: 0 0 auto; }
+  .feed-item .paper-card.research-card > .paper-actions { border: 0; padding: 0; margin: 0; gap: 17px; flex-wrap: nowrap; }
+  .feed-item .paper-card.research-card .paper-feedback-actions { border: 0; padding: 0; margin-left: auto; }
+  .feed-item .paper-card.research-card .paper-feedback-actions .feedback-button { border: 0; padding: 0; margin: 0; }
+}
+
+@media (max-width: 600px) and (max-height: 740px) {
+  .feed-item .paper-card.research-card { padding-top: 13px; }
+  .feed-item .paper-card.research-card .paper-top { margin-bottom: 6px; gap: 4px; }
+  .feed-item .paper-card.research-card .paper-title-button { -webkit-line-clamp: 2; }
+  .feed-item .paper-card.research-card .paper-brief { margin-top: 9px; gap: 6px; }
+  .feed-item .paper-card.research-card .paper-brief-block { padding: 7px; }
+}
+
+/* Public surfaces only. Keep card geometry, typography and interactions intact.
+   Static shadows avoid filters, animation and persistent compositor layers. */
+.app-shell {
+  --public-card-line: color-mix(in srgb, var(--border) 65%, var(--card));
+  --public-card-inset: color-mix(in srgb, var(--soft) 65%, var(--card));
+  --public-card-shadow: 0 2px 4px rgb(24 28 40 / 2%), 0 14px 28px -8px rgb(24 28 40 / 12%);
+  --public-card-shadow-small: 0 2px 3px rgb(24 28 40 / 2%), 0 10px 22px -7px rgb(24 28 40 / 10%);
+}
+.dark .app-shell {
+  --public-card-line: color-mix(in srgb, var(--border) 85%, var(--secondary) 15%);
+  --public-card-shadow: 0 2px 4px rgb(0 0 0 / 12%), 0 16px 32px -10px rgb(0 0 0 / 30%);
+  --public-card-shadow-small: 0 2px 3px rgb(0 0 0 / 10%), 0 12px 24px -8px rgb(0 0 0 / 24%);
+}
+.app-shell .workspace :is(.panel, .research-card, .aui-thread-root, .modal) {
+  --card-line: var(--public-card-line);
+  background: var(--card);
+  border-color: var(--public-card-line);
+  box-shadow: var(--public-card-shadow);
+}
+.app-shell .workspace .rightbar .research-card,
+.app-shell .workspace .browse-tree,
+.app-shell .workspace .trends-content .daily-hotspot {
+  box-shadow: var(--public-card-shadow-small);
+}
+.app-shell .workspace .paper-card.research-card :is(.paper-brief-block, .abstract-preview),
+.app-shell .workspace .reading-dialog .paper-detail-abstract {
+  background: var(--public-card-inset);
+}
+
+@media (min-width: 601px) {
+  /* Let the non-scrolling frames paint shadows. Their child viewports still scroll. */
+  .app-shell.is-feed .workspace .feed-page,
+  .app-shell .workspace .viewport-panel {
+    overflow: visible;
+  }
+  /* Compensated gutters preserve the cards' content width and alignment. */
+  .app-shell.is-feed .workspace .feed-scroll,
+  .app-shell .workspace .viewport-panel > .paper-list {
+    margin-inline: -24px;
+    padding-inline: 24px;
+  }
+  .app-shell .workspace .viewport-panel > .paper-list {
+    padding-bottom: 24px;
+  }
+  .app-shell .workspace .rightbar {
+    box-sizing: content-box;
+    margin-inline: -24px;
+    padding-inline: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-shell {
+    --public-card-shadow: 0 2px 3px rgb(24 28 40 / 2%), 0 8px 16px -6px rgb(24 28 40 / 12%);
+    --public-card-shadow-small: 0 1px 3px rgb(24 28 40 / 2%), 0 6px 12px -5px rgb(24 28 40 / 10%);
+  }
+  .dark .app-shell {
+    --public-card-shadow: 0 2px 3px rgb(0 0 0 / 10%), 0 8px 16px -6px rgb(0 0 0 / 24%);
+    --public-card-shadow-small: 0 1px 3px rgb(0 0 0 / 8%), 0 6px 12px -5px rgb(0 0 0 / 20%);
+  }
+}

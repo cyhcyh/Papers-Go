@@ -1,0 +1,81 @@
+/* Overview presentation. Data and controls remain owned by the page components. */
+.admin-overview{container-type:inline-size;--overview-blue:#3568ff;--overview-soft:color-mix(in srgb,#3568ff 6%,var(--card));--overview-line:color-mix(in srgb,#3568ff 5%,var(--border));color:var(--text)}
+.dark .admin-overview{--overview-blue:#9cb8ff}
+.admin-overview .overview-toolbar{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:21px}
+.admin-overview .overview-toolbar .admin-page-title{margin:0;font-size:28px;line-height:1.35;letter-spacing:-.6px}
+.admin-overview .overview-toolbar p{font-size:13px;color:var(--secondary);margin-top:5px}
+.overview-period-tabs{display:flex;gap:4px;padding:4px;background:var(--soft);border:1px solid var(--border);border-radius:10px;flex-shrink:0}
+.overview-period-tabs button{font-size:13px;padding:8px 18px;border:0;border-radius:7px;background:transparent;color:var(--secondary)}
+.overview-period-tabs button.active{background:#3568ff;color:#fff;box-shadow:0 2px 7px #3568ff25}
+.admin-overview>.panel,.admin-overview .overview-cards>.panel,.admin-overview .overview-charts>.panel,.admin-overview .overview-bottom>.panel{border-radius:14px;border-color:var(--overview-line);box-shadow:0 3px 15px #1e386806}
+.admin-overview .overview-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:17px}
+.admin-overview .overview-card{display:flex;align-items:flex-start;gap:14px;padding:19px 18px;min-width:0;background:linear-gradient(135deg,var(--card) 60%,var(--overview-soft))}
+.admin-overview .overview-card>.content-icon{width:42px;height:42px;border-radius:10px;margin-top:1px}
+.admin-overview .overview-card .content-icon svg{width:23px;height:23px;color:inherit}
+.admin-overview .overview-card>.overview-card-value{display:block;min-width:0}
+.admin-overview .overview-card h2{font-size:12px;font-weight:550;color:var(--secondary);line-height:1.6}
+.admin-overview .overview-card strong{display:block;font-size:25px;font-weight:700;letter-spacing:-.7px;line-height:1.25;margin-top:4px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.admin-overview .overview-card p{font-size:11px;color:var(--secondary);line-height:1.8;margin-top:6px}
+.admin-overview .overview-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
+.admin-overview .overview-chart{padding:18px 19px 14px;min-width:0;background:var(--card)}
+.overview-section-heading{display:flex;align-items:center;gap:12px;min-width:0}
+.overview-section-heading>.content-icon{width:35px;height:35px;border-radius:9px;background:#3568ff;color:#fff;box-shadow:0 2px 7px #3568ff22}
+.overview-section-heading>.content-icon.purple{background:#865bff;color:#fff;box-shadow:0 2px 7px #865bff22}
+.overview-section-heading>.content-icon.green{background:#25b398;color:#fff;box-shadow:0 2px 7px #25b39822}
+.overview-section-heading>.content-icon svg{width:20px;height:20px}
+.overview-section-heading>div:not(.overview-chart-legend){flex:1;min-width:0}
+.admin-overview .overview-section-heading h2{font-size:15px;font-weight:650;line-height:1.5;margin:0}
+.admin-overview :is(.overview-chart,.overview-jobs,.overview-pending,.overview-usage) .overview-section-heading h2{font-size:15px;font-weight:650}
+.overview-section-heading p{font-size:11px;color:var(--secondary);line-height:1.6;margin-top:3px}
+.overview-section-heading>a{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--overview-blue);white-space:nowrap}
+.overview-chart-legend{display:flex;align-items:center;justify-content:flex-end;gap:15px;flex-wrap:wrap;margin-left:auto;font-size:11px;color:var(--secondary)}
+.overview-chart-legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.overview-chart-legend i{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.overview-chart-legend i.blue{background:#3568ff}.overview-chart-legend i.purple{background:#8b5cf6}
+.admin-overview .overview-chart .overview-chart-canvas{height:200px;margin-top:14px}
+.admin-overview .overview-secondary-charts .overview-chart-canvas{height:250px}
+.admin-overview .recharts-default-tooltip{background:var(--card)!important;border-color:var(--overview-line)!important;border-radius:10px!important;box-shadow:0 5px 20px #102c5610;color:var(--text);font-size:12px}
+.admin-overview .recharts-legend-wrapper{font-size:11px}
+.admin-overview .overview-reading-metrics{padding:19px 20px 16px;margin-bottom:16px}
+.admin-overview .reading-metrics-header{margin-bottom:17px;gap:12px}
+.admin-overview .reading-metrics-header>.content-icon{width:35px;height:35px;border-radius:9px;background:#3568ff;color:#fff;box-shadow:0 2px 7px #3568ff22}
+.admin-overview .reading-metrics-header>.content-icon svg{width:20px;height:20px}
+.admin-overview .reading-metrics-header h2{font-size:15px;font-weight:650}
+.admin-overview .reading-metrics-header p{font-size:11px;margin-top:3px}
+.admin-overview .reading-user-filter>button{padding:7px 12px;font-size:12px;min-width:110px;justify-content:space-between}
+.admin-overview .reading-metrics-summaries{grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.admin-overview .reading-metrics-summaries>div{padding:14px 13px;gap:11px;background:var(--card);border-color:var(--overview-line);border-radius:11px}
+.admin-overview .reading-metrics-summaries .content-icon{width:32px;height:32px;border-radius:9px}
+.admin-overview .reading-metrics-summaries span:not(.content-icon){font-size:12px;color:var(--text);font-weight:550}
+.admin-overview .reading-metrics-summaries strong{font-size:25px;font-weight:700;letter-spacing:-.5px;margin-top:5px}
+.admin-overview .reading-metrics-summaries small{font-size:10px;color:var(--secondary)}
+.admin-overview .reading-metrics-chart{height:220px;margin-top:20px}
+.admin-overview .overview-reading-metrics>.hint{border:0;padding:0;margin-top:9px;font-size:10px}
+.admin-overview .overview-bottom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
+.admin-overview .overview-bottom>.panel{padding:18px 19px;min-width:0}
+.admin-overview .overview-pending>.overview-pending-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;border:0;padding:0;margin-top:17px}
+.overview-pending-grid>a{position:relative;display:block;padding:12px 15px;background:var(--soft);border:1px solid var(--border);border-radius:10px;min-width:0;transition:background .15s,border-color .15s}
+.overview-pending-grid>a:hover{background:var(--overview-soft);border-color:color-mix(in srgb,#3568ff 20%,var(--border))}
+.overview-pending-grid>a>span{font-size:11px;color:var(--secondary)}
+.overview-pending-grid>a>strong{display:block;font-size:23px;line-height:1.4;margin-top:3px;font-variant-numeric:tabular-nums}
+.overview-pending-grid>a>svg{position:absolute;right:13px;bottom:16px;color:var(--secondary)}
+.admin-overview .overview-jobs>.overview-job-list{display:block;border:0;padding:0;margin-top:14px}
+.overview-job-list>div{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px}
+.overview-job-list>div>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-overview .overview-job-list small{font-size:10px;color:var(--secondary);margin:0;text-align:right;white-space:nowrap}
+.overview-job-state{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;color:var(--secondary);font-size:11px}
+.overview-job-state i{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.overview-job-state.ready{color:#1aaa7e}.overview-job-state.running{color:var(--overview-blue)}.overview-job-state.error{color:#d35f67}
+.dark .overview-job-state.ready{color:#65d7b0}.dark .overview-job-state.error{color:#ff969e}
+.overview-jobs-expand{display:block;width:100%;margin-top:8px;padding:7px;border:0;background:transparent;color:var(--overview-blue);font-size:11px}
+.admin-overview .overview-usage{padding:19px 20px;margin-bottom:16px}
+.admin-overview .overview-usage select{font-size:12px;padding:7px 11px;border-radius:8px;margin-left:auto}
+.admin-overview .overview-usage .table-wrap{margin-top:17px;border:1px solid var(--border);border-radius:10px}
+.admin-overview .overview-usage th{padding:12px 15px;background:var(--soft);font-size:11px;color:var(--secondary)}
+.admin-overview .overview-usage td{padding:12px 15px;font-size:12px}
+.overview-usage-note{font-size:11px;color:var(--secondary);margin:0 0 15px;padding:10px 14px;background:var(--overview-soft);border-radius:9px}
+.admin-overview .overview-updated{font-size:10px;line-height:1.7;color:var(--secondary);text-align:right;margin-top:12px}
+@container(max-width:900px){.admin-overview .overview-card{gap:10px;padding:16px 13px}.admin-overview .overview-card>.content-icon{width:34px;height:34px;border-radius:8px}.admin-overview .overview-card .content-icon svg{width:19px;height:19px}.admin-overview .overview-card strong{font-size:23px}.overview-chart-legend{gap:8px}.admin-overview .reading-metrics-summaries>div{gap:8px;padding:12px 10px}.admin-overview .reading-metrics-summaries .content-icon{width:27px;height:27px}.admin-overview .reading-metrics-summaries strong{font-size:22px}.overview-section-heading{gap:9px}.overview-job-list>div{gap:7px}.admin-overview .overview-job-list small{font-size:9px}}
+@container(max-width:740px){.admin-overview .overview-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.admin-overview .overview-card{padding:17px;gap:13px}.admin-overview .overview-card>.content-icon{width:40px;height:40px}.admin-overview .reading-metrics-summaries{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-overview .reading-metrics-summaries strong{font-size:24px}.overview-chart-legend{width:100%;justify-content:flex-start;margin-left:44px}.overview-section-heading{flex-wrap:wrap}}
+@container(max-width:580px){.admin-overview .overview-toolbar{gap:12px;margin-bottom:18px}.admin-overview .overview-toolbar .admin-page-title{font-size:25px}.admin-overview .overview-toolbar p{font-size:11px}.overview-period-tabs button{font-size:12px;padding:7px 10px}.admin-overview .overview-charts,.admin-overview .overview-bottom{grid-template-columns:1fr;gap:14px}.admin-overview .overview-chart{padding:17px 14px 12px}.admin-overview .overview-chart .overview-chart-canvas{height:210px}.admin-overview .overview-secondary-charts .overview-chart-canvas{height:260px}.admin-overview .overview-reading-metrics{padding:17px 14px}.admin-overview .reading-metrics-chart{height:220px}.admin-overview .overview-bottom>.panel{padding:17px 14px}.admin-overview .overview-usage{padding:17px 14px}.admin-overview .overview-usage .overview-section-heading>select{margin:6px 0 0 auto}.overview-job-list>div{gap:8px}.admin-overview .overview-job-list small{font-size:10px}.admin-overview .overview-card strong{font-size:25px}.overview-chart-legend{width:auto;margin-left:auto}.admin-overview .reading-metrics-header h2{font-size:15px}}
+@container(max-width:360px){.admin-overview .overview-toolbar{flex-wrap:wrap}.overview-period-tabs{margin-left:auto}.admin-overview .overview-card{padding:14px 11px;gap:9px;flex-direction:column}.admin-overview .overview-card>.content-icon{width:31px;height:31px}.admin-overview .overview-card strong{font-size:22px}.admin-overview .overview-job-list small{display:none}.overview-job-list>div{grid-template-columns:minmax(0,1fr) auto}}

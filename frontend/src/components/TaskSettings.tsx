@@ -1,0 +1,46 @@
+import {useState} from 'react'
+import {Clock,Settings2,ShieldCheck,Trash2} from 'lucide-react'
+import {api} from '../api'
+import {SettingsDialog,SettingsBlock} from './ModelSettingsUI'
+import {taskNames} from './taskNames'
+import '../model-settings.css'
+
+export type Schedule={enabled:boolean;frequency:'daily'|'weekly';time:string;weekdays:number[];next_run?:string|null}
+export type Advanced={github_token_configured?:boolean;openalex_api_key_configured?:boolean;lookback_days?:number;cache_hours?:number;sample_size?:number;batch_size?:number;initial_days?:number;social_days?:number;repeat_limit?:number;cache_days?:number;priority_category?:string}
+export type TaskConfiguration={timezone:string;updated_at:string|null;schedules:Record<string,Schedule>;advanced:Record<string,Advanced>;defaults:{schedules:Record<string,Schedule>;advanced:Record<string,Advanced>}}
+const weekdays=['周一','周二','周三','周四','周五','周六','周日']
+export function scheduleText(value?:Schedule){return !value?'加载计划…':!value.enabled?'自动执行已关闭':`${value.frequency==='daily'?'每日':value.weekdays.map(day=>weekdays[day]).join('、')} ${value.time}`}
+
+export function TaskScheduleDialog({config,onSaved,onClose}:{config:TaskConfiguration;onSaved:(value:TaskConfiguration)=>void;onClose:()=>void}){
+ const [values,setValues]=useState(()=>structuredClone(config.schedules)),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ const update=(name:string,change:Partial<Schedule>)=>setValues(old=>({...old,[name]:{...old[name],...change}}))
+ const row=(name:string)=><div className="task-schedule-row" key={name}>
+  <strong>{name==='pipeline'?'完整流水线':taskNames[name]}</strong>
+  <label className="task-schedule-toggle"><input type="checkbox" role="switch" aria-label={'自动执行'+(taskNames[name]||'完整流水线')} checked={values[name].enabled} onChange={e=>update(name,{enabled:e.target.checked})}/><span className="task-schedule-switch" aria-hidden="true"/><span>自动执行</span></label>
+  <div className="task-schedule-controls"><select aria-label={(taskNames[name]||'完整流水线')+'执行频率'} value={values[name].frequency} onChange={e=>update(name,{frequency:e.target.value as Schedule['frequency'],weekdays:values[name].weekdays.length?values[name].weekdays:[6]})}><option value="daily">每天</option><option value="weekly">每周</option></select><input type="time" aria-label={(taskNames[name]||'完整流水线')+'执行时间'} required value={values[name].time} onChange={e=>update(name,{time:e.target.value})}/></div>
+  {values[name].frequency==='weekly'&&<div className="task-weekdays" role="group" aria-label={(taskNames[name]||'完整流水线')+'执行星期'}>{weekdays.map((label,day)=><label key={day}><input type="checkbox" checked={values[name].weekdays.includes(day)} onChange={e=>update(name,{weekdays:e.target.checked?[...values[name].weekdays,day].sort() : values[name].weekdays.filter(value=>value!==day)})}/>{label}</label>)}</div>}
+ </div>
+ const save=async()=>{setError('');if(Object.values(values).some(value=>!value.time||value.frequency==='weekly'&&!value.weekdays.length)){setError('请填写执行时间，每周执行至少选择一个星期。');return}setBusy(true);try{const body=Object.fromEntries(Object.entries(values).map(([name,{enabled,frequency,time,weekdays}])=>[name,{enabled,frequency,time,weekdays}])) ;onSaved(await api<TaskConfiguration>('/admin/task-center/schedules','PATCH',body));onClose()}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
+ return <SettingsDialog title="计划任务设置" description={`时区：${config.timezone}${config.timezone==='Asia/Shanghai'?'（北京时间）':''}`} icon={<span className="mc-dialog-feature-icon task-dialog-icon"><Clock size={25}/></span>} onClose={onClose} busy={busy} error={error} footer={<><button className="task-restore-button" disabled={busy} onClick={()=>setValues(structuredClone(config.defaults.schedules))}>恢复默认</button><span className="task-dialog-spacer"/><button disabled={busy} onClick={onClose}>取消</button><button className="primary" disabled={busy} onClick={save}>{busy?'保存中…':'保存计划'}</button></>}>
+  <fieldset className="task-dialog-fields task-plan-fields" disabled={busy}><SettingsBlock title="完整流水线" description="按顺序执行，自动跳过已禁用的任务。">{row('pipeline')}</SettingsBlock><SettingsBlock title="独立任务" description="各任务可单独设置执行频率与时间。">{Object.keys(values).filter(name=>name!=='pipeline').map(row)}</SettingsBlock></fieldset>
+  <p className="task-settings-note">保存后将在 10 秒内更新后续计划，正在运行的任务继续完成。关闭自动执行后仍可手动运行；已有同类任务时跳过重复触发。</p>
+ </SettingsDialog>
+}
+
+type Field={key:keyof Advanced;label:string;unit:string;min:number;max:number}
+const fields:Record<string,Field[]>={
+ fetch_community:[{key:'lookback_days',label:'论文回看范围',unit:'天',min:1,max:90},{key:'cache_hours',label:'仓库信号缓存时间',unit:'小时',min:1,max:168}],
+ audit:[{key:'sample_size',label:'每次抽样论文数',unit:'篇',min:1,max:100}],
+ author_impact:[{key:'batch_size',label:'每次最多处理',unit:'篇',min:1,max:1000},{key:'cache_days',label:'作者数据缓存时间',unit:'天',min:30,max:365}],
+ paper_expiry:[{key:'batch_size',label:'每批清退篇数',unit:'篇',min:1,max:200},{key:'initial_days',label:'首次抓取保留天数',unit:'天',min:1,max:36500},{key:'social_days',label:'新增喜欢或收藏延至操作后',unit:'天',min:1,max:36500},{key:'repeat_limit',label:'重复延长次数上限',unit:'次',min:0,max:5}]
+}
+export function TaskAdvancedDialog({name,config,onSaved,onClose}:{name:string;config:TaskConfiguration;onSaved:(value:TaskConfiguration)=>void;onClose:()=>void}){
+ const [values,setValues]=useState<Advanced>({...config.advanced[name]}),[secret,setSecret]=useState(''),[clear,setClear]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ const key=name==='fetch_community'?'github_token':name==='author_impact'?'openalex_api_key':null,configured=key?Boolean(values[(key+'_configured') as keyof Advanced]):false
+ const save=async()=>{setError('');const invalid=fields[name].some(field=>{const value=Number(values[field.key]);return !Number.isInteger(value)||value<field.min||value>field.max});if(invalid){setError('请填写范围内的整数。');return}setBusy(true);try{const body:Record<string,unknown>=Object.fromEntries(fields[name].map(field=>[field.key,values[field.key]]));if(name==='author_impact')body.priority_category=(values.priority_category||'').trim();if(key){body.clear_secret=clear;if(secret.trim()&&!clear)body[key]=secret.trim()}onSaved(await api<TaskConfiguration>('/admin/task-center/advanced/'+name,'PATCH',body));onClose()}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
+ return <SettingsDialog title={taskNames[name]+' · 高级设置'} description="参数用于下一轮执行；运行时长由程序内部控制。" icon={<span className={'mc-dialog-feature-icon task-dialog-icon'+(name==='paper_expiry'?' purple':'')}>{name==='paper_expiry'?<Trash2 size={25}/>:<Settings2 size={25}/>}</span>} onClose={onClose} busy={busy} error={error} footer={<><button className="task-restore-button" disabled={busy} onClick={()=>{setValues({...config.defaults.advanced[name],github_token_configured:values.github_token_configured,openalex_api_key_configured:values.openalex_api_key_configured});setSecret('');setClear(false)}}>恢复默认参数</button><span className="task-dialog-spacer"/><button disabled={busy} onClick={onClose}>取消</button><button className="primary" disabled={busy} onClick={save}>{busy?'保存中…':'保存设置'}</button></>}>
+  <fieldset className="task-dialog-fields task-advanced-fields" disabled={busy}>{key&&<SettingsBlock title={key==='github_token'?'GitHub Token':'OpenAlex API Key'} description="凭据加密保存，已有凭据不会返回浏览器。"><label className="task-secret-field"><span>{configured?'已配置 · 留空保留原凭据':'尚未配置 · 可选'}</span><input type="password" autoComplete="new-password" spellCheck={false} disabled={busy||clear} placeholder="填写或替换凭据" value={secret} onChange={e=>setSecret(e.target.value)}/></label>{configured&&<label className="task-clear-secret"><input type="checkbox" checked={clear} onChange={e=>setClear(e.target.checked)}/>保存时清除已有凭据</label>}</SettingsBlock>}
+  <SettingsBlock title={name==='paper_expiry'?'清退与保留规则':'处理参数'}><div className="task-advanced-grid">{fields[name].map(field=><label key={field.key}><span>{field.label}</span><div className="task-number-field"><input type="number" min={field.min} max={field.max} step="1" required value={values[field.key]===undefined?'':Number(values[field.key])} onChange={e=>setValues(old=>({...old,[field.key]:e.target.value===''?undefined:Number(e.target.value)}))}/><span>{field.unit}</span></div><small>{field.min}–{field.max} {field.unit}</small></label>)}</div>{name==='author_impact'&&<label className="task-secret-field"><span>优先补充的 arXiv 分类（可选）</span><input value={values.priority_category||''} placeholder="例如 math.CO；留空按时间处理" maxLength={40} onChange={e=>setValues(old=>({...old,priority_category:e.target.value}))}/></label>}</SettingsBlock></fieldset>
+  {name==='paper_expiry'?<div className="task-settings-note"><strong><ShieldCheck size={16}/>生效范围</strong><p>保留天数用于新入库论文及后续喜欢、收藏；已有到期时间保持不变，后续操作只延长已有期限。</p><p>重复额度按每位用户、每篇论文计算；首次喜欢和首次收藏不计入。正在生成或排队的论文暂缓清退。</p></div>:name==='audit'?<p className="task-settings-note">抽样检查主题分类并记录结果，已审核分类保持原有修正规则。样本数越多，模型输入及耗时越大。</p>:name==='author_impact'?<p className="task-settings-note">按同学科、同年份和论文类型的引用前 10% 标记，统计作者近 10 年的高被引论文。作者缓存全站复用；查询额度以 OpenAlex 账户为准。接口限额或达到运行时长后保留进度，后续运行继续；优先分类处理完后继续其他分类。</p>:<p className="task-settings-note">达到内部运行时长限制时结束本轮，剩余内容后续继续处理；缓存用于减少重复请求。</p>}
+ </SettingsDialog>
+}

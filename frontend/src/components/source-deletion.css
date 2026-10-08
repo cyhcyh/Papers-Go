@@ -1,0 +1,13 @@
+.source-deletion-list{display:grid;gap:10px;margin:0 0 18px}
+.source-deletion-list:empty{display:none}
+.source-deletion-status{padding:16px 18px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+.source-deletion-heading{display:flex;align-items:center;gap:8px;color:var(--accent);font-size:15px}
+.source-deletion-heading>span{margin-left:auto;color:var(--muted);font-size:13px}
+.source-deletion-count{font-size:14px;margin-top:10px;font-variant-numeric:tabular-nums}
+.source-deletion-status progress{display:block;width:100%;height:6px;margin:10px 0;accent-color:var(--accent)}
+.source-deletion-status p{font-size:13px;color:var(--secondary);margin:6px 0 0;line-height:1.7}
+.source-deletion-status.failed .source-deletion-heading{color:#c57721}
+.source-deletion-error{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.source-deletion-error button{flex-shrink:0;font-size:13px}
+.source-deleting-label{display:inline-block;margin:6px 0 0;color:var(--accent);font-size:12px}
+@media(max-width:600px){.source-deletion-status{padding:14px}.source-deletion-heading{flex-wrap:wrap}.source-deletion-error{align-items:flex-start;flex-direction:column;gap:8px}}

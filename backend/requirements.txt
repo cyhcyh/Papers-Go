@@ -1,0 +1,13 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+pydantic-settings>=2.7,<3
+PyJWT>=2.10,<3
+httpx>=0.28,<1
+openai>=1.68,<3
+APScheduler>=3.11,<4
+sqlite-vec>=0.1.6,<0.2
+PyMuPDF>=1.25,<2
+beautifulsoup4>=4.13,<5
+tzdata>=2025.1
+cryptography>=46,<51
+PyYAML>=6,<7
