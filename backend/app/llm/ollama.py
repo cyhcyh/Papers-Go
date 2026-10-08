@@ -118,7 +118,7 @@ class Ollama:
             config = configuration()
             binding = current_binding()
             endpoint = binding['base_url'] if binding else next((c['base_url'] for c in config['connections'] if c['kind']=='ollama'), settings().ollama_base_url)
-            required = {resolve(r['primary'],config)['model'] for name,r in config['routes'].items() if name in ('classify','quality','brief','embedding') and resolve(r['primary'],config)['kind']=='ollama' and resolve(r['primary'],config)['base_url']==endpoint}
+            required = {resolve(r['primary'],config)['model'] for name,r in config['routes'].items() if name in ('classify','quality','brief','embedding') and r['primary'].get('model') and r['primary'].get('connection_id') and resolve(r['primary'],config)['kind']=='ollama' and resolve(r['primary'],config)['base_url']==endpoint}
             async with httpx.AsyncClient(timeout=3) as client:
                 response = await client.get(endpoint.rstrip('/') + '/api/tags')
                 response.raise_for_status()

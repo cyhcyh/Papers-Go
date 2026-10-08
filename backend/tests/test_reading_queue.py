@@ -12,7 +12,8 @@ from .conftest import headers
 
 
 def route(kind='cloud'):
-    config=models.defaults()
+    config=models.legacy_defaults()
+    config['connections'][1]['api_key']='offline-test-key'
     for feature in ('reading_l2','reading_l3'):
         config['routes'][feature]={'primary':{'connection_id':'cloud' if kind=='cloud' else 'local','model':'qwen3:4b','thinking':'auto'},'fallback':None}
     execute("INSERT OR REPLACE INTO app_settings VALUES('models',?,?)",(dumps(config),now()))

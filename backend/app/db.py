@@ -122,6 +122,8 @@ def init_db(recover=True):
             INSERT OR IGNORE INTO paper_categories(paper_id,category_key) SELECT NEW.id,'arxiv:'||LOWER(NEW.primary_category) WHERE NEW.venue IS NULL AND NEW.primary_category IS NOT NULL;
             INSERT OR IGNORE INTO paper_categories(paper_id,category_key) SELECT NEW.id,'arxiv:'||LOWER(value) FROM json_each(COALESCE(NEW.categories,'[]')) WHERE NEW.venue IS NULL;"""
         db.execute('CREATE TABLE IF NOT EXISTS app_migrations(name TEXT PRIMARY KEY,applied_at TEXT NOT NULL)')
+        from .llm.runtime import initialize_explicit_selection
+        initialize_explicit_selection(db)
         from .pipeline.quality import initialize as initialize_quality
         initialize_quality(db)
         from .pipeline.author_impact import initialize as initialize_authors

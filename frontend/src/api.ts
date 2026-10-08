@@ -1,5 +1,8 @@
 import type {User} from './types'
 export type Auth = {access_token:string;refresh_token:string;user:User;admin_entry?:string}
+export class ApiError extends Error {
+ constructor(message:string,public detail:unknown){super(message);this.name='ApiError'}
+}
 export function readAuth():Auth|null {try{return JSON.parse(localStorage.getItem('auth')||'null')}catch{return null}}
 export function storeAuth(auth:Auth|null) {if(auth){const {admin_entry,...session}=auth;localStorage.setItem('auth',JSON.stringify(session))}else localStorage.removeItem('auth');window.dispatchEvent(new Event('auth-change'))}
 let refreshRequest:Promise<Auth>|null = null
@@ -51,7 +54,7 @@ async function request(path:string,init:RequestInit={}) {
   }
   if(!response.ok) {
     const data=await response.json().catch(()=>({detail:'网络请求失败'}))
-    throw new Error(typeof data.detail==='string'?data.detail:'输入格式不正确，请检查后重试')
+    throw new ApiError(typeof data.detail==='string'?data.detail:typeof data.detail?.message==='string'?data.detail.message:'输入格式不正确，请检查后重试',data.detail)
   }
   return response
 }

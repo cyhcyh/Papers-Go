@@ -10,6 +10,12 @@ from .conftest import headers
 
 @pytest.fixture
 def task_runtime(client, monkeypatch):
+    from app.llm import runtime
+    from app.db import dumps
+    from app.config import now
+    config=runtime.configuration()
+    config['connections'][1]['api_key']='offline-test-key'
+    execute("UPDATE app_settings SET value=?,updated_at=? WHERE name='models'",(dumps(config),now()))
     monkeypatch.setattr(scheduler, '_pipeline_lock', asyncio.Lock())
     for name in ('_manual_tasks', '_pipeline_tasks', '_stopping'):
         monkeypatch.setattr(scheduler, name, set())

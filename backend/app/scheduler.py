@@ -22,6 +22,7 @@ from .llm import runtime as models
 from .logs import event
 from .pipeline_control import job_enabled, cancellation_scope
 from .task_settings import INDEPENDENT_JOBS, schedules as task_schedules, trigger as schedule_trigger
+from .task_readiness import DEPENDENCIES, ready_for_automatic
 
 logger = logging.getLogger(__name__)
 jobs = {'fetch_arxiv':fetch_arxiv,'fetch_conf':fetch_conf,'fetch_community':fetch_community,
@@ -90,6 +91,9 @@ def _forget_job(name, task):
 
 @models.model_task
 async def run_job(name, fetch_limit=None, redo_id=None, force_conf=False, author_generation=None, daily_batch_id=None):
+    if not ready_for_automatic([name],label=name):
+        if redo_id:execute("UPDATE pipeline_redo_runs SET status='stopped',updated_at=? WHERE id=?",(now(),redo_id))
+        return
     task = asyncio.current_task()
     requested=asyncio.Event()
     _stop_requests[task]=requested
@@ -231,10 +235,11 @@ async def _stages(names, fetch_limit=None, force_conf=False):
 
 @models.model_task
 async def pipeline(fetch_limit=None, force_conf=False):
+    names=[name for name in jobs if name not in INDEPENDENT_JOBS]
+    if not ready_for_automatic(names,label='pipeline'):return
     task = asyncio.current_task()
     _pipeline_tasks.add(task)
     try:
-        names=[name for name in jobs if name not in INDEPENDENT_JOBS]
         await _stages(names, fetch_limit, force_conf)
     finally:
         _pipeline_tasks.discard(task)
@@ -282,6 +287,8 @@ async def _bootstrap():
     def resume_enabled(name):
         state=one('SELECT error FROM source_status WHERE name=?',(name,))
         return job_enabled(name) and (not state or state['error']!=STOP_MESSAGE)
+    planned=[name for name in jobs if name not in INDEPENDENT_JOBS and resume_enabled(name)]
+    if not ready_for_automatic(planned,label='pipeline'):return
     if resume_enabled('fetch_arxiv') and not one('SELECT id FROM papers LIMIT 1'):
         await _stages(['fetch_arxiv'], fetch_limit=settings().fetch_limit)
     if not one('SELECT id FROM papers WHERE classified=0 OR embedding IS NULL OR scored=0 OR brief_json IS NULL LIMIT 1'):
@@ -293,7 +300,7 @@ async def _bootstrap():
         config = models.configuration()
         features = set()
         for name in stages:
-            features.update({'classify':['classify'], 'build_vectors':['embedding'], 'assess_quality':['quality'], 'tldr_gen':['brief'], 'preread':['reading_l2','embedding']}.get(name, []))
+            features.update(DEPENDENCIES.get(name,()))
         bindings = [models.resolve(config['routes'][name]['primary'],config) for name in features]
         endpoints = {b['base_url']:b for b in bindings if b['kind']=='ollama'}
         ready = True
@@ -307,6 +314,8 @@ async def _bootstrap():
 
 
 async def run_scheduled(name):
+    names=[stage for stage in jobs if stage not in INDEPENDENT_JOBS] if name=='pipeline' else [name]
+    if not ready_for_automatic(names,label=name):return
     # Manual executions and previous scheduled runs share the same deduplication.
     if name=='trend_report' and job_state()['busy']:
         event('trend','流水线忙，延后自动趋势更新',job=name)

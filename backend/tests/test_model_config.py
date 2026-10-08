@@ -47,7 +47,7 @@ def test_model_settings_permissions_and_key_preservation(client, accounts):
 
 @pytest.mark.asyncio
 async def test_feature_routes_fallback_and_task_snapshot(client, monkeypatch):
-    config = runtime.defaults()
+    config = runtime.legacy_defaults()
     config['connections'][1]['api_key']='test-key'
     config['routes']['classify']={'primary':{'connection_id':'cloud','model':'classifier-v2'},'fallback':None}
     config['routes']['reading_l2']={'primary':{'connection_id':'local','model':'reader-local'},'fallback':None}
@@ -81,7 +81,7 @@ async def test_feature_routes_fallback_and_task_snapshot(client, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_local_native_chat_and_cloud_fallback(client, monkeypatch):
-    config = runtime.defaults()
+    config = runtime.legacy_defaults()
     config['routes']['chat']={'primary':{'connection_id':'local','model':'local-tools'},'fallback':None}
     config['connections'][0]['base_url']='http://local.test:11434'
     persist(config)

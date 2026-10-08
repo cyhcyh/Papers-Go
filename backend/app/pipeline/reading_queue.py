@@ -46,7 +46,9 @@ def enqueue(paper_id, level='L2', retry=False, regenerate=False, source='user',a
         if cached and cached['status']=='failed' and not (retry or regenerate):return dict(cached)
         # Compatibility with an already running call from the previous application version.
         if cached and cached['status']=='pending':return dict(cached)
-        kind='ollama' if models.selected(feature)['kind']=='ollama' else 'cloud'
+        try:binding=models.selected(feature)
+        except ValueError as error:raise HTTPException(409,str(error)) from error
+        kind='ollama' if binding['kind']=='ollama' else 'cloud'
         queued_at=now()
         progress={'stage':'queued','queued_at':queued_at,'level':level}
         db.execute("INSERT INTO reading_cards(paper_id,status,progress_json,created_at) VALUES(?,'pending',?,?) ON CONFLICT(paper_id) DO UPDATE SET status='pending',error=NULL,progress_json=excluded.progress_json,created_at=excluded.created_at",(paper_id,dumps(progress),queued_at))
@@ -90,13 +92,17 @@ def dispatch():
         db.execute('BEGIN IMMEDIATE')
         # Waiting cards use the current routing; running cards keep their model snapshot.
         for level in ('L2','L3'):
-            choice=config['routes']['reading_l3' if level=='L3' else 'reading_l2']['primary']
+            if not db.execute("SELECT 1 FROM reading_jobs WHERE level=? AND status='queued' LIMIT 1",(level,)).fetchone():continue
+            feature='reading_l3' if level=='L3' else 'reading_l2'
+            if models.configuration_issue(feature,config):continue
+            choice=config['routes'][feature]['primary']
             kind='ollama' if models.resolve(choice,config)['kind']=='ollama' else 'cloud'
             db.execute("UPDATE reading_jobs SET kind=? WHERE level=? AND status='queued' AND kind!=?",(kind,level,kind))
         for kind,limit in limits.items():
             running=db.execute("SELECT COUNT(*) FROM reading_jobs WHERE kind=? AND status='running'",(kind,)).fetchone()[0]
             jobs=db.execute("SELECT * FROM reading_jobs WHERE kind=? AND status='queued' ORDER BY id LIMIT ?",(kind,max(0,limit-running))).fetchall()
             for job in jobs:
+                if models.configuration_issue('reading_l3' if job['level']=='L3' else 'reading_l2',config):continue
                 db.execute("UPDATE reading_jobs SET status='running' WHERE id=?",(job['id'],))
                 db.execute('UPDATE reading_cards SET progress_json=? WHERE paper_id=?',(dumps({'stage':'parsing','started_at':now(),'queued_at':job['queued_at'],'level':job['level']}),job['paper_id']))
                 claimed.append(dict(job))

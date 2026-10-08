@@ -71,7 +71,7 @@ async def test_length_truncation_preserves_saved_brief_and_quality(client,papers
             'usage':{'prompt_tokens':5,'completion_tokens':budget,'total_tokens':budget+5}})
     monkeypatch.setattr(cloud,'client',lambda:AsyncOpenAI(base_url='https://example.test/v1',api_key='test',
         http_client=httpx.AsyncClient(transport=httpx.MockTransport(respond))))
-    config=runtime.defaults()
+    config=runtime.legacy_defaults()
     config['routes'][feature]={'primary':{'connection_id':'cloud','model':'test','thinking':thinking,'reasoning_effort':'auto'},'fallback':None}
     generate=tldr.generate_brief if feature=='brief' else embed.score_paper
     with runtime.model_snapshot(config,replace=True),pytest.raises(ValueError,match='模型输出达到长度上限'):

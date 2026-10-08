@@ -72,9 +72,9 @@ def test_keys_are_encrypted_preserved_and_never_returned(client, accounts):
 
 def test_existing_plaintext_keys_migrate_on_startup(client):
     from app.db import init_db
-    config = runtime.defaults()
+    config = runtime.legacy_defaults()
     config['connections'][1]['api_key'] = 'legacy-test-credential'
-    execute("INSERT INTO app_settings VALUES('models',?,?)", (dumps(config),now()))
+    execute("INSERT OR REPLACE INTO app_settings VALUES('models',?,?)", (dumps(config),now()))
     init_db()
     assert 'legacy-test-credential' not in one("SELECT value FROM app_settings WHERE name='models'")['value']
     assert runtime.configuration()['connections'][1]['api_key']=='legacy-test-credential'

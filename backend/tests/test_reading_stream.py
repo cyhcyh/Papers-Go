@@ -16,7 +16,7 @@ from .test_reading_v2 import card_value
 
 
 def use_cloud(model='deepseek-v4.1-flash',thinking='off'):
-    config=models.defaults()
+    config=models.legacy_defaults()
     config['connections'][1]['api_key']='test-key'
     for feature in ('reading_l2','reading_l3'):
         config['routes'][feature]={'primary':{'connection_id':'cloud','model':model,'thinking':thinking},'fallback':None}
@@ -162,7 +162,7 @@ async def test_cloud_reading_stream_uses_its_route_and_json_budget_and_keeps_tok
 
 @pytest.mark.asyncio
 async def test_native_reading_stream_keeps_thinking_hidden_and_uses_json_context_budget(client,monkeypatch):
-    config=models.defaults()
+    config=models.legacy_defaults()
     config['routes']['reading_l2']={'primary':{'connection_id':'local','model':'qwen3:4b','thinking':'on'},'fallback':None}
     execute("INSERT OR REPLACE INTO app_settings VALUES('models',?,?)",(dumps(config),now()))
     requests=[];raw=dumps(card_value())

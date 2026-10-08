@@ -35,7 +35,7 @@ def test_speed_settings_are_admin_editable_and_local_remains_serial(client,accou
 async def test_speed_reading_processes_over_100_with_bounded_concurrency_and_snapshot(client,monkeypatch):
     with connect() as db:
         for i in range(111):db.execute('INSERT INTO papers(title,abstract,created_at,quality_score,ingested_date) VALUES(?,?,?,?,?)',(f'Paper {i}','Abstract',now(),i%3,today()))
-    config=models.defaults();config['routes']['brief']['primary']={'connection_id':'cloud','model':'test'}
+    config=models.legacy_defaults();config['routes']['brief']['primary']={'connection_id':'cloud','model':'test'}
     execute("INSERT OR REPLACE INTO app_settings VALUES('models',?,?)",(dumps(config),now()))
     active=peak=0;called=[];extra=None
     async def generate(p):
@@ -71,7 +71,7 @@ async def test_speed_reading_cursor_crosses_multiple_unknown_quality_batches(cli
 
 @pytest.mark.asyncio
 async def test_speed_reading_stop_cancels_requests_and_leaves_unfinished_for_next_run(client,papers,monkeypatch):
-    config=models.defaults();config['routes']['brief']['primary']={'connection_id':'cloud','model':'test'}
+    config=models.legacy_defaults();config['routes']['brief']['primary']={'connection_id':'cloud','model':'test'}
     execute("INSERT OR REPLACE INTO app_settings VALUES('models',?,?)",(dumps(config),now()))
     started=asyncio.Event();active=0
     async def blocked(p):
@@ -159,6 +159,9 @@ async def test_long_reading_extracts_every_section_with_two_requests_at_most(cli
 
 @pytest.mark.asyncio
 async def test_explicit_regeneration_keeps_old_card_and_does_not_spawn_duplicates(client,papers,monkeypatch):
+    config=models.configuration()
+    config['connections'][1]['api_key']='offline-test-key'
+    execute("UPDATE app_settings SET value=? WHERE name='models'",(dumps(config),))
     old={'tldr':'旧结果','method_summary':'旧方法','key_results':[],'limitations':[],'read_priority':'skim','reading_level':'L2'}
     execute("INSERT INTO reading_cards(paper_id,status,card_json,created_at) VALUES(?,'ready',?,?)",(papers[0],dumps(old),now()))
     monkeypatch.setattr(read,'_tasks',{})

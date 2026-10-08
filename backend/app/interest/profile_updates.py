@@ -211,7 +211,7 @@ async def process(job):
     task = None
     try:
         # Existing embedding permits still apply; local description calls stay serial.
-        local = models.selected('interest_init')['kind'] == 'ollama'
+        local = models.configured('interest_init') and models.selected('interest_init')['kind'] == 'ollama'
         async def run():
             if local:
                 async with _local_slot:

@@ -216,10 +216,17 @@ def browse(topic_id: int | None=None,category: str | None=None,range: Literal['t
 
 
 @router.get('/library')
-def library(type: Literal['like','save','history']='save',limit: int=Query(20,ge=1,le=100),cursor: str=Query('',max_length=200),user=Depends(current_user)):
+def library(type: Literal['like','save','history']='save',limit: int=Query(20,ge=1,le=100),cursor: str=Query('',max_length=200),query: str=Query('',max_length=200),user=Depends(current_user)):
+    query=query.strip()
+    search_sql='';search_args=[]
+    if query:
+        from ..paper_index import search_clause
+        clause,search_args=search_clause(query)
+        search_sql=' AND ('+clause+')'
     if type=='history':
         clause='s.user_id=? AND s.seen=1 AND s.last_browsed_at IS NOT NULL'
         args=[user['id']]
+        clause+=search_sql;args.extend(search_args)
         if cursor:
             try:
                 stamp,ident=json.loads(cursor)
@@ -239,7 +246,7 @@ def library(type: Literal['like','save','history']='save',limit: int=Query(20,ge
         return {'items':items,
                 'next_cursor':dumps([papers[-1]['last_browsed_at'],papers[-1]['id']]) if more else None}
     field = 'liked' if type=='like' else 'saved'
-    papers = rows(f'SELECT p.* FROM papers p JOIN user_paper_state s ON s.paper_id=p.id WHERE s.user_id=? AND s.{field}=1 ORDER BY s.updated_at DESC',(user['id'],))
+    papers = rows(f'SELECT p.* FROM papers p JOIN user_paper_state s ON s.paper_id=p.id WHERE s.user_id=? AND s.{field}=1'+search_sql+' ORDER BY s.updated_at DESC',[user['id'],*search_args])
     ranked = {p['id']:p for p in scored_papers(user['id'],papers)}
     return {'items':[ranked.get(p['id'],serialize_paper(p)) for p in papers]}
 

@@ -4,7 +4,7 @@ from urllib.parse import urlsplit
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from ..auth import admin_user
 from ..config import now, settings
@@ -42,25 +42,33 @@ class Connection(BaseModel):
 
 class Selection(BaseModel):
     connection_id: str
-    model: str = Field(min_length=1, max_length=200)
+    model: str = Field('', max_length=200)
     thinking: Literal['auto','on','off'] = 'auto'
     reasoning_effort: str = Field('auto',max_length=40,pattern=r'^[a-zA-Z0-9_-]+$')
 
     @field_validator('model')
     @classmethod
     def trim_model(cls, value):
-        if not value.strip():
-            raise ValueError('请输入模型名称')
         return value.strip()
+
+    @model_validator(mode='after')
+    def complete_choice(self):
+        if bool(self.connection_id)!=bool(self.model):raise ValueError('请选择连接和模型，或同时留空')
+        return self
 
 
 class Route(BaseModel):
     primary: Selection
     fallback: Selection | None = None
 
+    @model_validator(mode='after')
+    def selected_fallback(self):
+        if self.fallback and not self.fallback.model:self.fallback=None
+        return self
+
 
 class Configuration(BaseModel):
-    connections: list[Connection] = Field(min_length=1, max_length=21)
+    connections: list[Connection] = Field(max_length=21)
     routes: dict[str, Route]
     embedding_dim: int = Field(1024, ge=1, le=8192)
     rebuild_vectors: bool = False
@@ -104,7 +112,7 @@ async def save_configuration(body: Configuration):
         raise HTTPException(400, '请为每个功能配置模型')
     for name, route in body.routes.items():
         for choice in (route.primary, route.fallback):
-            if choice and choice.connection_id not in ids:
+            if choice and choice.connection_id and choice.connection_id not in ids:
                 raise HTTPException(400, f'{runtime.FEATURES[name][0]}选择的连接不存在')
             if choice and name!='embedding' and any(c['id']==choice.connection_id and c.get('embedding_retained') for c in connections):
                 raise HTTPException(400,'保留的旧向量连接仅供当前向量空间使用，请选择模型连接')
@@ -118,7 +126,7 @@ async def save_configuration(body: Configuration):
     discovered = {}
     for feature, route in config['routes'].items():
         for choice in (route['primary'],route['fallback']):
-            if not choice:
+            if not choice or not choice['model']:
                 continue
             if feature=='embedding':
                 if choice['thinking']!='auto' or choice['reasoning_effort']!='auto':
@@ -146,15 +154,21 @@ async def save_configuration(body: Configuration):
             if choice['reasoning_effort']!='auto' and (choice['thinking']=='off' or choice['reasoning_effort'] not in caps['reasoning_efforts']):
                 raise HTTPException(400,f'{runtime.FEATURES[feature][0]}所选模型不支持该推理强度')
             choice['control_capabilities'] = caps
-    embedding_changed = runtime.embedding_identity(previous)!=runtime.embedding_identity(config)
+    identity_changed = runtime.embedding_identity(previous)!=runtime.embedding_identity(config)
+    has_vectors=bool(one('SELECT 1 FROM papers WHERE embedding IS NOT NULL LIMIT 1') or one('SELECT 1 FROM interest_profile WHERE embedding IS NOT NULL LIMIT 1'))
+    if identity_changed and runtime.embedding_identity(config) is None and has_vectors:
+        raise HTTPException(409,'已有向量数据，不能清空向量模型。请通过重建切换到新模型')
+    first_embedding=runtime.embedding_identity(previous) is None and not has_vectors
+    embedding_changed = identity_changed and not first_embedding and runtime.embedding_identity(config) is not None
     if pending and embedding_changed:raise HTTPException(409,'已有向量重建配置，请先完成或取消重建，再切换向量模型；其他功能可继续修改')
     live=config
-    if embedding_changed:
+    if identity_changed and not first_embedding:
         from ..pipeline_control import public_state
         from ..pipeline.read import _tasks
         from ..agent.chat import _active_sessions
         if runtime.active_snapshots or public_state()['busy'] or _tasks or one("SELECT 1 FROM reading_jobs WHERE status='running'") or _active_sessions:
             raise HTTPException(409, '请先停止模型任务、精读和对话，再切换向量模型')
+    if embedding_changed:
         if settings().pipeline_mode!='inline' and not public_state()['worker_available']:
             raise HTTPException(503,'后台工作进程尚未就绪，请稍后切换向量模型')
         if not body.rebuild_vectors:

@@ -2,3 +2,6 @@
 .browse-filters .search-input{flex:1 1 180px}
 .browse-filters .browse-date-value{width:140px;min-width:0;margin:0;padding:10px 8px;font-size:calc(11px * var(--text-scale))}
 .browse-filters input[type=number].browse-date-value{width:100px}
+.library-filters{display:flex;margin-bottom:20px}
+.library-filters .search-input{width:100%;min-width:0}
+.library-filters .search-input input{min-width:0;flex:1}

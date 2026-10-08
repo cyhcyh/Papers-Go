@@ -29,7 +29,7 @@ _binding = ContextVar('model_binding', default=None)
 active_snapshots = set()
 
 
-def defaults():
+def legacy_defaults():
     cfg = settings()
     local = lambda model: {'connection_id': 'local', 'model': model, 'thinking':'off' if 'off' in capabilities({'kind':'ollama','model':model,'base_url':cfg.ollama_base_url})['thinking_modes'] else 'auto', 'reasoning_effort':'auto'}
     cloud = lambda model: {'connection_id': 'cloud', 'model': model, 'thinking':'auto', 'reasoning_effort':'auto'}
@@ -55,6 +55,30 @@ def defaults():
         'embedding_cloud_concurrency':cfg.embedding_cloud_concurrency,'embedding_local_concurrency':cfg.embedding_local_concurrency}
 
 
+def defaults():
+    cfg = settings()
+    return {'connections': [], 'routes': {name: {'primary': {'connection_id':'', 'model':'', 'thinking':'auto', 'reasoning_effort':'auto'}, 'fallback':None} for name in FEATURES},
+            'embedding_dim':cfg.embedding_dim, **{key:getattr(cfg,key) for key in (
+                'brief_cloud_concurrency','quality_cloud_concurrency','classify_cloud_concurrency',
+                'reading_cloud_concurrency','reading_local_concurrency','embedding_cloud_concurrency','embedding_local_concurrency')}}
+
+
+def initialize_explicit_selection(db):
+    # Freeze old implicit settings once. A fresh database stays empty even if
+    # papers are later fetched manually before the administrator selects models.
+    migration='model_explicit_selection_v1'
+    if db.execute('SELECT 1 FROM app_migrations WHERE name=?',(migration,)).fetchone():return
+    saved=db.execute("SELECT 1 FROM app_settings WHERE name='models'").fetchone()
+    existing=db.execute('SELECT 1 FROM users LIMIT 1').fetchone() or db.execute('SELECT 1 FROM papers LIMIT 1').fetchone()
+    if not saved and existing:
+        from .secrets import encrypt_configuration
+        from ..db import dumps
+        from ..config import now
+        db.execute("INSERT INTO app_settings(name,value,updated_at) VALUES('models',?,?)",(dumps(encrypt_configuration(legacy_defaults())),now()))
+    from ..config import now
+    db.execute('INSERT INTO app_migrations VALUES(?,?)',(migration,now()))
+
+
 def configuration():
     frozen = _snapshot.get()
     if frozen is not None:
@@ -73,7 +97,7 @@ def configuration():
         config.setdefault('embedding_local_concurrency',settings().embedding_local_concurrency)
         for feature, route in config['routes'].items():
             for choice in (route['primary'], route.get('fallback')):
-                if choice is not None:
+                if choice and choice.get('connection_id') and choice.get('model'):
                     connection = next(c for c in config['connections'] if c['id']==choice['connection_id'])
                     mode = 'off' if feature!='embedding' and (feature in ('classify','chat') or connection['kind']=='ollama') else 'auto'
                     caps = capabilities({**connection,**choice})
@@ -97,6 +121,7 @@ def public_configuration(config=None, *, include_rebuild=True):
             connection['auth']=status(connection['id'])
             connection['configured']=connection['auth']['logged_in']
     config['features'] = [{'id': key, 'name': name, 'requirement': requirement} for key, (name, requirement) in FEATURES.items()]
+    config['has_vectors']=bool(one('SELECT 1 FROM papers WHERE embedding IS NOT NULL LIMIT 1') or one('SELECT 1 FROM interest_profile WHERE embedding IS NOT NULL LIMIT 1'))
     if include_rebuild:
         from .vector_rebuild import state
         config['pending_rebuild']=state()
@@ -132,20 +157,35 @@ def model_task(function):
 
 def resolve(selection, config=None):
     config = config or configuration()
-    connection = next(c for c in config['connections'] if c['id'] == selection['connection_id'])
+    if not selection or not selection.get('connection_id') or not selection.get('model'):
+        raise ValueError('尚未选择模型，请管理员在模型配置中选择连接和模型')
+    connection = next((c for c in config['connections'] if c['id'] == selection['connection_id']),None)
+    if not connection:raise ValueError('模型连接不存在，请管理员重新配置')
     return {**connection, **selection, 'embedding_dim': config['embedding_dim']}
 
 
 def selected(feature):
-    return resolve(configuration()['routes'][feature]['primary'])
+    config=configuration()
+    try:return resolve(config['routes'][feature]['primary'],config)
+    except ValueError as error:raise ValueError(FEATURES[feature][0]+'：'+str(error)) from error
+
+
+def configuration_issue(feature,config=None):
+    config=config or configuration()
+    choice=config['routes'].get(feature,{}).get('primary')
+    if not choice or not choice.get('connection_id') or not choice.get('model','').strip():return '尚未选择模型'
+    binding=next((c for c in config['connections'] if c['id']==choice['connection_id']),None)
+    if not binding:return '模型连接不存在'
+    if not binding.get('base_url','').strip():return '尚未填写服务地址'
+    if binding['kind']=='codex':
+        from .codex import status
+        if not status(binding['id'])['logged_in']:return '尚未完成 Codex 登录'
+    elif binding['kind']=='cloud' and not binding.get('api_key'):return '尚未填写 API Key'
+    return None
 
 
 def configured(feature):
-    binding = selected(feature)
-    if binding['kind']=='codex':
-        from .codex import status
-        return status(binding['id'])['logged_in']
-    return binding['kind'] == 'ollama' or bool(binding.get('api_key'))
+    return configuration_issue(feature) is None
 
 
 def vector_dimension():
@@ -184,6 +224,7 @@ async def complete(feature, messages, json_mode=False, cache_seconds=0, purpose=
     from .provider import cloud
     from .ollama import ollama
     with model_snapshot():
+        selected(feature)
         route = configuration()['routes'][feature]
         choices = [route['primary']] + ([route['fallback']] if route.get('fallback') else [])
         for index, choice in enumerate(choices):
@@ -246,6 +287,7 @@ async def stream(messages, tools, *, feature='chat', json_mode=False, schema=Non
     from .provider import cloud
     from .ollama import ollama
     with model_snapshot():
+        selected(feature)
         route = configuration()['routes'][feature]
         choices = [route['primary']] + ([route['fallback']] if route.get('fallback') else [])
         for index, choice in enumerate(choices):
@@ -292,6 +334,8 @@ async def stream(messages, tools, *, feature='chat', json_mode=False, schema=Non
 
 
 def embedding_identity(config):
+    choice=config['routes']['embedding']['primary']
+    if not choice or not choice.get('connection_id') or not choice.get('model'):return None
     binding = resolve(config['routes']['embedding']['primary'], config)
     from .catalog import canonical_name
     return (binding['kind'], binding['base_url'].rstrip('/'), canonical_name(binding,binding['model']), config['embedding_dim'])

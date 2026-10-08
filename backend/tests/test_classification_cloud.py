@@ -13,7 +13,7 @@ from app.pipeline import classify as module
 
 
 def cloud_config():
-    config = runtime.defaults()
+    config = runtime.legacy_defaults()
     config['connections'][1].update(base_url='https://test.cn-beijing.maas.aliyuncs.com/compatible-mode/v1', api_key='test-key')
     for feature in ('classify', 'reading_l2'):
         config['routes'][feature] = {'primary': {'connection_id':'cloud', 'model':'deepseek-v4.1-flash'}, 'fallback':None}
@@ -69,7 +69,7 @@ async def test_classification_concurrency_limit_and_exactly_once(client, monkeyp
             active -= 1
     monkeypatch.setattr(module,'check_service',ready)
     monkeypatch.setattr(module,'classify_paper',process)
-    config = cloud_config() if kind=='cloud' else runtime.defaults()
+    config = cloud_config() if kind=='cloud' else runtime.legacy_defaults()
     with runtime.model_snapshot(config):
         assert await module.classify(limit=9)==9
     assert peak==expected and len(seen)==len(set(seen))==9

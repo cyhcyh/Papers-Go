@@ -77,6 +77,7 @@ Papers-Go 是一个可自行部署的论文阅读与推荐网站，提供刷视�
 - [更新与备份](#updates-and-backups)
 - [本地开发](#development)
 - [技术栈与项目结构](#project-structure)
+- [后续计划](#todo)
 - [开源协议](#license)
 
 <a name="quick-start" id="quick-start"></a>
@@ -384,6 +385,16 @@ Papers-Go/
 ├── .env.example             # 启动配置示例
 └── LICENSE
 ```
+<a name="todo" id="todo"></a>
+
+## 后续计划
+- [ ] 数据库接口化重构，迁移到PostgreSQL
+- [ ] 添加SMTP邮件支持
+- [ ] 支持Claude等更多模型和Token Plan
+- [ ] 添加飞书等更多通知渠道
+- [ ] 让智能助手支持每日研究简报的推送
+- [ ] 支持普通用户独立配置模型API等
+……
 
 <a name="license" id="license"></a>
 

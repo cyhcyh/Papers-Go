@@ -59,6 +59,10 @@ def client(tmp_path,monkeypatch):
         from .legacy_catalog import TOPICS, migrate_flat_topics
         from app.source_catalog import DEFAULT_ARXIV, DEFAULT_VENUES, ADDITIONAL_AI_VENUES, official_categories, invalidate
         with connect() as db:
+            # The legacy behavior suite starts with explicitly configured models.
+            # Production defaults and incomplete setup have their own tests.
+            from app.llm.secrets import encrypt_configuration
+            db.execute("INSERT INTO app_settings VALUES('models',?,?)",(dumps(encrypt_configuration(runtime.legacy_defaults())),now()))
             # Existing behavior tests simulate a configured site. Fresh-install
             # defaults are tested separately without this legacy fixture.
             official={s['code']:s for s in official_categories()}

@@ -15,6 +15,7 @@ from ..standard_topics import catalog as standards, search as search_standards, 
 from ..logs import event
 from ..disciplines import Discipline
 from ..pipeline_control import enabled_jobs, job_enabled, set_job_enabled, public_state, queue_command
+from ..task_readiness import missing_configuration, require_configuration
 
 router = APIRouter(prefix='/api/admin',dependencies=[Depends(admin_user)])
 from .task_center import router as task_center_router
@@ -347,6 +348,8 @@ def source_snapshot():
     found = {s['name']:s for s in rows('SELECT * FROM source_status')}
     state = public_state()
     switches = enabled_jobs()
+    from ..llm import runtime as models
+    model_config=models.configuration()
     from ..pipeline.redo import latest_runs
     redo=latest_runs()
     from ..pipeline import author_runs
@@ -354,6 +357,7 @@ def source_snapshot():
     return [{**found.get(name,{'name':name,'last_run':None,'last_success':None,'added':0,'error':None,'running':0}),
              **({'continuation':author_continuation} if name=='author_impact' else {}),
              'progress':json.loads(found.get(name,{}).get('progress') or '{}'),
+             'missing_configuration':missing_configuration([name],model_config,switches),
              'redo':redo.get(name),'enabled':switches.get(name,True), 'queued':name in state['queued'], 'stopped':found.get(name,{}).get('error')==STOP_MESSAGE} for name in jobs]
 
 
@@ -375,6 +379,7 @@ def enqueue_redo(name, ident):
 @router.post('/jobs/{name}/redo')
 async def new_redo(name: str,body: RedoOptions):
     if not job_enabled(name):raise HTTPException(409,'任务已禁用，请先启用')
+    require_configuration(name)
     if public_state()['busy']:raise HTTPException(409,'当前有任务运行，请先停止或稍后再试')
     ident=create_run(name,body)
     try:enqueue_redo(name,ident)
@@ -387,6 +392,7 @@ async def new_redo(name: str,body: RedoOptions):
 @router.post('/jobs/{name}/redo/{ident}/resume')
 async def resume_redo(name: str,ident: int):
     if not job_enabled(name):raise HTTPException(409,'任务已禁用，请先启用')
+    require_configuration(name)
     validate_resume(ident,name)
     if public_state()['busy']:raise HTTPException(409,'当前有任务运行，请先停止或稍后再试')
     execute("UPDATE pipeline_redo_runs SET status='queued',updated_at=? WHERE id=?",(now(),ident))
@@ -435,6 +441,7 @@ async def stop(name: str):
 async def run(name: str):
     if name not in jobs and name!='pipeline': raise HTTPException(404,'任务不存在')
     if name!='pipeline' and not job_enabled(name): raise HTTPException(409,'任务已禁用，请先启用')
+    require_configuration(name)
     if settings().pipeline_mode=='inline':
         if job_state()['busy'] or any(s['running'] for s in rows('SELECT running FROM source_status')): raise HTTPException(409,'当前有任务运行，请先停止或稍后再试')
         start_manual(name)
@@ -445,9 +452,11 @@ async def run(name: str):
 @router.get('/llm-status')
 async def llm_status():
     from ..llm import runtime as model_runtime
-    chat = model_runtime.selected('chat')
-    return {'base_url':chat['base_url'],'configured':model_runtime.configured('chat'),
-        'models':{'chat':chat['model'],'precise':model_runtime.selected('reading_l2')['model'],'fast':model_runtime.selected('audit')['model']},
-        'ollama':await ollama.status(),
+    config=model_runtime.configuration()
+    choice=config['routes']['chat']['primary']
+    connection=next((c for c in config['connections'] if c['id']==choice['connection_id']),{})
+    return {'base_url':connection.get('base_url',''),'configured':model_runtime.configured('chat'),
+        'models':{key:config['routes'][feature]['primary']['model'] for key,feature in (('chat','chat'),('precise','reading_l2'),('fast','audit'))},
+        'ollama':await ollama.status() if any(c['kind']=='ollama' for c in config['connections']) else {'available':False,'ready':False,'models':[]},
         'usage':rows('SELECT substr(created_at,1,10) AS date,model,SUM(input_tokens) AS input_tokens,SUM(output_tokens) AS output_tokens FROM llm_usage WHERE billing_source="api" AND created_at>=? GROUP BY date,model',(today(),)),
         'audit':one("SELECT detail,created_at FROM audit_log WHERE action='classification.audit' ORDER BY id DESC LIMIT 1")}
