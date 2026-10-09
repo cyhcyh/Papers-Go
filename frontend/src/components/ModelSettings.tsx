@@ -1,4 +1,4 @@
-import {useEffect,useState,lazy,Suspense} from 'react'
+import {useEffect,useState,useRef,lazy,Suspense} from 'react'
 import '../model-settings.css'
 const SkillsSettings=lazy(()=>import('./SkillsSettings').then(m=>({default:m.SkillsSettings})))
 import {Plus,RefreshCw,Check,Search,LayoutGrid,List,SlidersHorizontal,Cloud,Monitor,FileText,BookOpen,Brain,Database,Tags,ShieldCheck,Languages,TrendingUp,ClipboardCheck,MessageSquare,ScanText,BookMarked,UserRound,History,Info,Eye,EyeOff,Box} from 'lucide-react'
@@ -103,11 +103,20 @@ export function ModelSettings(){
  const [connectionRebuild,setConnectionRebuild]=useState(false)
  const [readingEditor,setReadingEditor]=useState<{cloud:number;local:number}|null>(null)
  const [featureEditor,setFeatureEditor]=useState<{id:string;mode:'model'|'advanced';route:Route;brief_cloud_concurrency:number;quality_cloud_concurrency:number;classify_cloud_concurrency:number;embedding_cloud_concurrency:number;embedding_local_concurrency:number;embedding_dim:number;rebuild:boolean}|null>(null)
+ const connectionActions=useRef(new Set<string>())
+ const action=async(connection:Connection,refresh:boolean)=>{
+  if(connectionActions.current.has(connection.id))return
+  connectionActions.current.add(connection.id);setWorking(connection.id)
+  if(refresh)setStatuses(s=>({...s,[connection.id]:{ok:true,message:'正在更新可用模型…'}}))
+  try{const response=await api<Catalog&{ok:boolean;message:string}>('/admin/models/'+(refresh?'refresh':'connection-test'),'POST',connection);setStatuses(s=>({...s,[connection.id]:response}));if(refresh)setDraft(d=>d&&({...d,connections:d.connections.map(c=>c.id===connection.id?{...c,catalog:response}:c)}))}
+  catch(e){setStatuses(s=>({...s,[connection.id]:{ok:false,message:(e as Error).message}}))}
+  finally{connectionActions.current.delete(connection.id);setWorking(current=>current===connection.id?null:current)}
+ }
  const waiting=draft?.connections.filter(c=>c.auth?.status==='waiting').map(c=>c.id).join(',')||''
  useEffect(()=>{
   if(!waiting)return
   const controller=new AbortController();let polling=false
-  const timer=setInterval(async()=>{if(polling)return;polling=true;try{for(const id of waiting.split(',')){const auth=await api<Auth>('/admin/models/codex/'+id+'/poll','POST',{},controller.signal);if(controller.signal.aborted)return;setDraft(d=>d&&({...d,connections:d.connections.map(c=>c.id===id?{...c,configured:auth.logged_in,auth:auth.status==='waiting'?{...c.auth,...auth}:auth}:c)}));if(auth.status==='ready')toast('Codex 登录成功，可以更新模型目录并保存配置')}}catch(e){if(!controller.signal.aborted)setError((e as Error).message)}finally{polling=false}},5000)
+  const timer=setInterval(async()=>{if(polling)return;polling=true;try{for(const id of waiting.split(',')){const auth=await api<Auth>('/admin/models/codex/'+id+'/poll','POST',{},controller.signal);if(controller.signal.aborted)return;setDraft(d=>d&&({...d,connections:d.connections.map(c=>c.id===id?{...c,configured:auth.logged_in,auth:auth.status==='waiting'?{...c.auth,...auth}:auth}:c)}));if(auth.status==='ready'){toast('Codex 登录成功，正在更新可用模型');const connection=draft?.connections.find(c=>c.id===id);if(connection)void action({...connection,configured:auth.logged_in,auth},true)}}}catch(e){if(!controller.signal.aborted)setError((e as Error).message)}finally{polling=false}},5000)
   return()=>{clearInterval(timer);controller.abort()}
  },[waiting,toast])
  if(result.error)return <ErrorBox error={result.error} reload={result.reload}/>
@@ -115,10 +124,9 @@ export function ModelSettings(){
  const signature=(config:Config)=>{const binding=config.routes.embedding.primary,connection=config.connections.find(c=>c.id===binding.connection_id);return JSON.stringify([connection?.kind,connection?.base_url.replace(/\/$/,''),canonicalModel(connection,binding.model),config.embedding_dim])}
  const requiresVectorRebuild=(config:Config)=>signature(config)!==signature(result.data||draft)&&!!((result.data||draft).routes.embedding.primary.model||(result.data||draft).has_vectors)
  const embeddingChanged=!!result.data&&requiresVectorRebuild(draft)
- const action=async(connection:Connection,refresh:boolean)=>{setWorking(connection.id);try{const response=await api<Catalog&{ok:boolean;message:string}>('/admin/models/'+(refresh?'refresh':'connection-test'),'POST',connection);setStatuses(s=>({...s,[connection.id]:response}));if(refresh)setDraft(d=>d&&({...d,connections:d.connections.map(c=>c.id===connection.id?{...c,catalog:response}:c)}))}catch(e){setStatuses(s=>({...s,[connection.id]:{ok:false,message:(e as Error).message}}))}finally{setWorking(null)}}
  const login=async(connection:Connection)=>{setWorking(connection.id);setError('');try{const auth=await api<Auth>('/admin/models/codex/login','POST',connection);setDraft(d=>d&&({...d,connections:d.connections.map(c=>c.id===connection.id?{...c,auth}:c)}))}catch(e){setError((e as Error).message)}finally{setWorking(null)}}
  const logout=async(connection:Connection)=>{setWorking(connection.id);try{await api('/admin/models/codex/'+connection.id+'/logout','POST',{});setDraft(d=>d&&({...d,connections:d.connections.map(c=>c.id===connection.id?{...c,configured:false,auth:{logged_in:false,status:'signed_out'},catalog:undefined}:c)}))}catch(e){setError((e as Error).message)}finally{setWorking(null)}}
- const save=async(candidate:Config=draft,rebuildVectors=embeddingChanged&&rebuild)=>{setBusy(true);setError('');try{const saved=await api<Config&{rebuild_queued?:boolean}>('/admin/models','PUT',{connections:candidate.connections,routes:candidate.routes,embedding_dim:candidate.embedding_dim,brief_cloud_concurrency:candidate.brief_cloud_concurrency,quality_cloud_concurrency:candidate.quality_cloud_concurrency,classify_cloud_concurrency:candidate.classify_cloud_concurrency,reading_cloud_concurrency:candidate.reading_cloud_concurrency,reading_local_concurrency:candidate.reading_local_concurrency,embedding_cloud_concurrency:candidate.embedding_cloud_concurrency,embedding_local_concurrency:candidate.embedding_local_concurrency,rebuild_vectors:rebuildVectors});result.setData(saved);toast(saved.rebuild_queued?'其他配置已保存，向量配置将在重建完成后切换':'配置已保存，新任务将使用新模型');return true}catch(e){setError((e as Error).message);return false}finally{setBusy(false)}}
+ const save=async(candidate:Config=draft,rebuildVectors=embeddingChanged&&rebuild)=>{setBusy(true);setError('');try{const saved=await api<Config&{rebuild_queued?:boolean}>('/admin/models','PUT',{connections:candidate.connections,routes:candidate.routes,embedding_dim:candidate.embedding_dim,brief_cloud_concurrency:candidate.brief_cloud_concurrency,quality_cloud_concurrency:candidate.quality_cloud_concurrency,classify_cloud_concurrency:candidate.classify_cloud_concurrency,reading_cloud_concurrency:candidate.reading_cloud_concurrency,reading_local_concurrency:candidate.reading_local_concurrency,embedding_cloud_concurrency:candidate.embedding_cloud_concurrency,embedding_local_concurrency:candidate.embedding_local_concurrency,rebuild_vectors:rebuildVectors});result.setData(saved);toast(saved.rebuild_queued?'其他配置已保存，向量配置将在重建完成后切换':'配置已保存，新任务将使用新模型');return saved}catch(e){setError((e as Error).message);return null}finally{setBusy(false)}}
  const rebuildAction=async(action:'resume'|'cancel')=>{setBusy(true);setError('');try{await api('/admin/models/embedding-rebuild/'+action,'POST',{});result.reload();toast(action==='resume'?'已安排继续重建':'已取消重建，继续使用原模型')}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
  const pending=draft.pending_rebuild
 
@@ -130,9 +138,11 @@ export function ModelSettings(){
   if(!connectionEditor)return
   const value=connectionEditor.value
   let candidate:Config
+  let refresh=connectionEditor.isNew
   if(connectionEditor.isNew)candidate={...draft,connections:[...draft.connections,value]}
-  else{const old=draft.connections.find(c=>c.id===value.id)!;const patch=Object.fromEntries(Object.entries(value).filter(([key,value])=>JSON.stringify(value)!==JSON.stringify(old[key as keyof Connection]))) as Partial<Connection>;const changedCredentials='api_key' in patch||'clear_key' in patch||'kind' in patch;const changedCatalog=changedCredentials||'base_url' in patch;candidate={...draft,connections:draft.connections.map(c=>c.id===value.id?{...c,...patch,...(changedCredentials?{credential_revision:randomId()}:{}),...(changedCatalog?{catalog:undefined}:{})}:c)}}
-  if(await save(candidate,requiresVectorRebuild(candidate)&&connectionRebuild)){setStatuses(s=>{const next={...s};delete next[value.id];return next});setConnectionEditor(null)}
+  else{const old=draft.connections.find(c=>c.id===value.id)!;const patch=Object.fromEntries(Object.entries(value).filter(([key,value])=>JSON.stringify(value)!==JSON.stringify(old[key as keyof Connection]))) as Partial<Connection>;const changedCredentials='api_key' in patch||'clear_key' in patch||'kind' in patch;const changedCatalog=changedCredentials||'base_url' in patch;refresh=changedCatalog||'oauth_client_id' in patch||'codex_auto_update' in patch||'codex_client_version' in patch;candidate={...draft,connections:draft.connections.map(c=>c.id===value.id?{...c,...patch,...(changedCredentials?{credential_revision:randomId()}:{}),...(changedCatalog?{catalog:undefined}:{})}:c)}}
+  const saved=await save(candidate,requiresVectorRebuild(candidate)&&connectionRebuild)
+  if(saved){setStatuses(s=>{const next={...s};delete next[value.id];return next});setConnectionEditor(null);const connection=saved.connections.find(c=>c.id===value.id);if(refresh&&connection?.configured&&(connection.kind!=='codex'||connection.auth?.logged_in))void action(connection,true)}
  }
  const openFeature=(id:string,mode:'model'|'advanced')=>{
   setError('')

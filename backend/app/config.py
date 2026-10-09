@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     embedding_dim: int = 1024
     github_token: str = ''
     openalex_api_key: str = ''
-    author_impact_batch_size: int = Field(default=100, ge=1, le=1000)
+    author_impact_batch_size: int = Field(default=500, ge=1, le=1000)
     author_impact_seconds: int = Field(default=120, ge=10, le=600)
     telegram_bot_token: str = ''
     arxiv_categories: str = 'cs.AI,cs.LG,cs.CL,cs.CV,cs.MA,cs.NE,cs.RO,stat.ML,math.CO'

@@ -18,10 +18,15 @@ from ..pipeline_control import check_cancelled
 
 API = 'https://api.openalex.org'
 HIGHLY_CITED_CAP = 20  # A small auxiliary signal saturates after sustained influence.
+NOT_FOUND_LIMIT = 3
+NOT_FOUND_RETRY_HOURS = 24
 
 
 def initialize(db):
     # Keep legacy author profiles (also used by author watchlists) intact.
+    db.execute('''CREATE TABLE IF NOT EXISTS author_query_failures (
+        author_id TEXT PRIMARY KEY, failure_count INTEGER NOT NULL CHECK(failure_count>0),
+        next_retry_at TEXT NOT NULL, updated_at TEXT NOT NULL)''')
     db.execute('''CREATE TABLE IF NOT EXISTS author_impact_cache (
         author_id TEXT PRIMARY KEY, name TEXT NOT NULL,
         highly_cited_count INTEGER NOT NULL CHECK(highly_cited_count>=0),
@@ -249,18 +254,50 @@ def pending_papers(config, *, count=False):
     success_cutoff=(datetime.now(timezone.utc)-timedelta(days=config['cache_days'])).isoformat()
     retry_cutoff=(datetime.now(timezone.utc)-timedelta(days=7)).isoformat()
     columns = 'COUNT(*) AS pending' if count else 'p.id,p.title,p.authors,p.published,p.arxiv_id,m.work_id,m.status'
+    stale='''(c.author_id IS NULL OR c.fetched_at<CASE WHEN c.validated=1 THEN :success ELSE :retry END
+              OR c.first_year!=:first_year OR c.last_year!=:last_year)'''
+    blocked='(f.failure_count>=:failure_limit OR f.next_retry_at>:stamp)'
+    # Cooling/paused authors must not cause empty five-second continuation batches.
+    # A paper stays eligible while any of its other authors still needs a query.
     sql='SELECT '+columns+'''
         FROM papers p LEFT JOIN author_work_matches m ON m.paper_id=p.id
-        WHERE m.paper_id IS NULL OR m.checked_at IS NULL OR m.checked_at<CASE WHEN m.status='matched' THEN ? ELSE ? END
+        WHERE (m.paper_id IS NULL OR m.checked_at IS NULL OR m.checked_at<CASE WHEN m.status='matched' THEN :success ELSE :retry END
         OR (m.status='matched' AND EXISTS(SELECT 1 FROM paper_author_links l
             LEFT JOIN author_impact_cache c ON c.author_id=l.author_id WHERE l.paper_id=p.id
-            AND (c.author_id IS NULL OR c.fetched_at<CASE WHEN c.validated=1 THEN ? ELSE ? END OR c.first_year!=? OR c.last_year!=?)))'''
-    args=(success_cutoff,retry_cutoff,success_cutoff,retry_cutoff,year-9,year)
+            AND '''+stale+''')))
+        AND (NOT EXISTS(SELECT 1 FROM paper_author_links l JOIN author_query_failures f ON f.author_id=l.author_id
+                WHERE l.paper_id=p.id AND '''+blocked+''')
+            OR EXISTS(SELECT 1 FROM paper_author_links l
+                LEFT JOIN author_impact_cache c ON c.author_id=l.author_id
+                LEFT JOIN author_query_failures f ON f.author_id=l.author_id
+                WHERE l.paper_id=p.id AND '''+stale+''' AND (f.author_id IS NULL OR NOT '''+blocked+''')))'''
+    args={'success':success_cutoff,'retry':retry_cutoff,'first_year':year-9,'last_year':year,
+          'failure_limit':NOT_FOUND_LIMIT,'stamp':now()}
     if count:
         return one(sql,args)['pending']
-    sql+=''' ORDER BY CASE WHEN ?!='' AND p.id IN (SELECT paper_id FROM paper_categories WHERE category_key=?) THEN 0 ELSE 1 END,
-            COALESCE(m.checked_at,''),p.published DESC,p.id DESC LIMIT ?'''
-    return rows(sql,(*args,config['priority_category'],'arxiv:'+config['priority_category'].casefold(),config['batch_size']))
+    sql+=''' ORDER BY CASE WHEN :priority!='' AND p.id IN (SELECT paper_id FROM paper_categories WHERE category_key=:category) THEN 0 ELSE 1 END,
+            COALESCE(m.checked_at,''),p.published DESC,p.id DESC LIMIT :batch_size'''
+    return rows(sql,{**args,'priority':config['priority_category'],
+                     'category':'arxiv:'+config['priority_category'].casefold(),'batch_size':config['batch_size']})
+
+
+def retry_author(author_id):
+    failure=one('SELECT failure_count,next_retry_at FROM author_query_failures WHERE author_id=?',(author_id,))
+    return not failure or failure['failure_count']<NOT_FOUND_LIMIT and failure['next_retry_at']<=now()
+
+
+def defer_missing_author(author_id, paper_id):
+    check_cancelled()
+    retry_at=(datetime.now(timezone.utc)+timedelta(hours=NOT_FOUND_RETRY_HOURS)).isoformat()
+    execute('''INSERT INTO author_query_failures VALUES(?,1,?,?) ON CONFLICT(author_id) DO UPDATE SET
+        failure_count=MIN(author_query_failures.failure_count+1,?),
+        next_retry_at=excluded.next_retry_at,updated_at=excluded.updated_at''',
+        (author_id,retry_at,now(),NOT_FOUND_LIMIT))
+    failure=one('SELECT failure_count FROM author_query_failures WHERE author_id=?',(author_id,))
+    event('author','OpenAlex 作者记录不存在，已暂停自动重查' if failure['failure_count']>=NOT_FOUND_LIMIT
+          else 'OpenAlex 作者记录不存在，24 小时后再查',level='warning',job='author_impact',
+          service='OpenAlex',path='/authors/'+author_id,status_code=404,author_id=author_id,
+          paper_id=paper_id,failure_count=failure['failure_count'])
 
 
 async def author_impact():
@@ -288,6 +325,7 @@ async def author_impact():
             check_cancelled()
             if time.monotonic()-started>=cfg.author_impact_seconds:
                 break
+            current_author=None
             try:
                 if paper['work_id']:
                     authors=rows('SELECT author_id,name,confidence FROM paper_author_links WHERE paper_id=?',(paper['id'],))
@@ -307,13 +345,22 @@ async def author_impact():
                         if alias:
                             a['author_id'] = alias['author_id']
                             link_identity(fragment,a['author_id'],alias['evidence_work_id'])
+                        current_author=a['author_id']
                         if one('SELECT 1 FROM author_impact_cache WHERE author_id=? AND fetched_at>=CASE WHEN validated=1 THEN ? ELSE ? END AND first_year=? AND last_year=?',
                                (a['author_id'],success_cutoff,retry_cutoff,year-9,year)):
+                            continue
+                        if not retry_author(a['author_id']):
                             continue
                         count = await source.highly_cited_count(a['author_id'], year)
                         validated = count>0
                         if not validated:
-                            profile = await source.get('/authors/'+a['author_id'])
+                            try:
+                                profile = await source.get('/authors/'+a['author_id'])
+                            except httpx.HTTPStatusError as error:
+                                if error.response.status_code!=404:
+                                    raise
+                                defer_missing_author(a['author_id'],paper['id'])
+                                continue
                             validated = profile.get('cited_by_count',0)>0 or any(
                                 item.get('year',year)<year and item.get('works_count',0)>0
                                 for item in profile.get('counts_by_year',[]))
@@ -323,12 +370,14 @@ async def author_impact():
                                     aid,evidence = identity
                                     link_identity(a['author_id'],aid,evidence)
                                     a['author_id'] = aid
+                                    current_author=aid
                                     cached = one('SELECT highly_cited_count FROM author_impact_cache WHERE author_id=? AND validated=1 AND fetched_at>=? AND first_year=? AND last_year=?',
                                                  (aid,success_cutoff,year-9,year))
                                     count = cached['highly_cited_count'] if cached else await source.highly_cited_count(aid,year)
                                     validated = True
                         check_cancelled()
                         with connect() as db:
+                            db.execute('DELETE FROM author_query_failures WHERE author_id=?',(a['author_id'],))
                             db.execute('INSERT INTO author_impact_cache(author_id,name,highly_cited_count,first_year,last_year,fetched_at,validated) VALUES(?,?,?,?,?,?,?) ON CONFLICT(author_id) DO UPDATE SET name=excluded.name,highly_cited_count=excluded.highly_cited_count,first_year=excluded.first_year,last_year=excluded.last_year,fetched_at=excluded.fetched_at,validated=excluded.validated',
                                        (a['author_id'],a['name'],count,year-9,year,now(),int(validated)))
                             linked = db.execute('SELECT paper_id FROM paper_author_links WHERE author_id=?', (a['author_id'],)).fetchall()
@@ -348,7 +397,14 @@ async def author_impact():
                 # Keep the unfinished paper eligible for the one delayed retry.
                 execute("INSERT INTO author_work_matches(paper_id,status,checked_at) VALUES(?,'error',NULL) ON CONFLICT(paper_id) DO UPDATE SET status='error',checked_at=NULL",(paper['id'],))
                 publish(final=True)
-                event('author','作者数据查询失败',level='warning',job='author_impact',paper_id=paper['id'],error_type=type(error).__name__)
+                response=getattr(error,'response',None)
+                status=response.status_code if response is not None else None
+                request=getattr(error,'request',None)
+                event('author','作者数据查询失败',level='warning',job='author_impact',paper_id=paper['id'],
+                      error_type=type(error).__name__,service='OpenAlex',author_id=current_author,
+                      status_code=status,path=request.url.path if request is not None else None)
+                if status:
+                    raise RuntimeError(f'OpenAlex 作者数据请求失败（HTTP {status}），请检查 OpenAlex 服务和认证配置') from error
                 raise
     publish(final=True)
     event('author','作者影响力缓存更新完成',job='author_impact',processed=processed,matched=matched,authors_updated=authors_updated)

@@ -90,7 +90,7 @@ def _forget_job(name, task):
 
 
 @models.model_task
-async def run_job(name, fetch_limit=None, redo_id=None, force_conf=False, author_generation=None, daily_batch_id=None):
+async def run_job(name, fetch_limit=None, redo_id=None, force_conf=False, author_generation=None, daily_batch_id=None, retry_missing_authors=False):
     if not ready_for_automatic([name],label=name):
         if redo_id:execute("UPDATE pipeline_redo_runs SET status='stopped',updated_at=? WHERE id=?",(now(),redo_id))
         return
@@ -120,7 +120,7 @@ async def run_job(name, fetch_limit=None, redo_id=None, force_conf=False, author
                     finally:
                         if not child.done():child.cancel()
                         await asyncio.gather(child,return_exceptions=True)
-            await _run_job(name, fetch_limit, task, redo_id, force_conf, author_generation, daily_batch_id)
+            await _run_job(name, fetch_limit, task, redo_id, force_conf, author_generation, daily_batch_id, retry_missing_authors)
     except asyncio.CancelledError:
         if name=='trend_report':
             # Stopping its preparation child must not leave an automatic request
@@ -135,7 +135,7 @@ async def run_job(name, fetch_limit=None, redo_id=None, force_conf=False, author
             execute("UPDATE pipeline_redo_runs SET status='stopped',updated_at=? WHERE id=? AND status IN ('queued','running')", (now(),redo_id))
 
 
-async def _run_job(name, fetch_limit, task, redo_id=None, force_conf=False, author_generation=None, daily_batch_id=None):
+async def _run_job(name, fetch_limit, task, redo_id=None, force_conf=False, author_generation=None, daily_batch_id=None, retry_missing_authors=False):
     async with _pipeline_lock:
         if not job_enabled(name):
             if redo_id:execute("UPDATE pipeline_redo_runs SET status='stopped' WHERE id=?",(redo_id,))
@@ -156,6 +156,8 @@ async def _run_job(name, fetch_limit, task, redo_id=None, force_conf=False, auth
         try:
             if name=='author_impact':
                 from .pipeline import author_runs
+                if retry_missing_authors:
+                    execute('DELETE FROM author_query_failures')
                 author_token=author_generation if author_generation is not None else author_runs.begin()
             function = jobs[name]
             if redo_id:
@@ -247,6 +249,8 @@ async def pipeline(fetch_limit=None, force_conf=False):
 
 def start_manual(name, redo_id=None, *, author_generation=None):
     arguments={'author_generation':author_generation} if author_generation is not None else {}
+    if name=='author_impact' and author_generation is None:
+        arguments['retry_missing_authors']=True
     task = asyncio.create_task(pipeline(force_conf=True) if name=='pipeline' else run_job(name,redo_id=redo_id,force_conf=True,**arguments))
     _manual_tasks.add(task)
     _manual_names[task] = name

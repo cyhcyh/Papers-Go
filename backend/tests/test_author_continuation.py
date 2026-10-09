@@ -8,7 +8,7 @@ from app import scheduler
 from app.db import connect, execute, one, dumps
 from app.pipeline import author_runs
 from app.pipeline_control import public_state, publish_state, set_job_enabled
-from app.config import settings
+from app.config import settings, now
 from .conftest import headers
 
 
@@ -205,6 +205,30 @@ def test_cancelled_generation_cannot_restore_continuation(runtime):
     author_runs.cancel()
     author_runs.finish(token,error='late failure')
     assert author_runs.read()['phase']=='stopped' and not author_runs.read()['next_run']
+
+
+@pytest.mark.asyncio
+async def test_only_manual_author_run_resets_missing_author_attempts(runtime,monkeypatch):
+    execute("INSERT INTO author_query_failures VALUES('A1',3,'2000-01-01',?)",(now(),))
+    observed=[]
+    async def author():
+        observed.append(one('SELECT COUNT(*) n FROM author_query_failures')['n'])
+        batch(0,1 if len(observed)==1 else 0)
+        return 0
+    monkeypatch.setattr(scheduler,'jobs',{'author_impact':author})
+    await scheduler.run_scheduled('author_impact')
+    await (await scheduler.continue_author_if_idle())
+    assert observed==[1,1]
+    await scheduler.start_manual('author_impact')
+    assert observed==[1,1,0]
+
+
+@pytest.mark.asyncio
+async def test_disabled_manual_author_run_does_not_reset_attempts(runtime,monkeypatch):
+    execute("INSERT INTO author_query_failures VALUES('A1',3,'2000-01-01',?)",(now(),))
+    set_job_enabled('author_impact',False)
+    await scheduler.start_manual('author_impact')
+    assert one('SELECT failure_count FROM author_query_failures')['failure_count']==3
 
 
 @pytest.mark.asyncio

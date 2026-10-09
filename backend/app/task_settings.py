@@ -57,7 +57,7 @@ class Audit(BaseModel):
 class AuthorImpact(BaseModel):
     model_config = ConfigDict(extra='forbid')
     openalex_api_key: str = Field('', max_length=1000)
-    batch_size: int = Field(100, ge=1, le=1000)
+    batch_size: int = Field(500, ge=1, le=1000)
     cache_days: int = Field(180, ge=30, le=365)
     priority_category: str = Field('', max_length=40, pattern=r'^(?:[A-Za-z][A-Za-z0-9.-]*)?$')
 
