@@ -3,20 +3,20 @@ import asyncio
 import time
 from ..llm import runtime as models
 from ..config import settings
-from ..db import rows, one, execute
+from ..db import rows, one, execute, dumps
 from ..logs import event
 from ..pipeline_control import check_cancelled
 from .progress import TaskProgress
 from ..llm.ollama import ollama
 from ..llm.provider import cloud
 from ..interest.profile import current
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 
 class PaperBrief(BaseModel):
     title_zh: str = Field(min_length=1, max_length=240)
     problem: str = Field(min_length=1, max_length=300)
-    contribution_result: str = Field(min_length=1, max_length=600)
+    contribution_result: str = Field(min_length=1, max_length=1200)
 
     @model_validator(mode='before')
     @classmethod
@@ -25,9 +25,11 @@ class PaperBrief(BaseModel):
             value={**value,'contribution_result':str(value['contribution'])+' '+str(value['result'])}
         return value
 
-    @field_validator('*')
+    @field_validator('*', mode='before')
     @classmethod
     def clean(cls, value, info):
+        if not isinstance(value, str):
+            return value
         value = ' '.join(value.split())
         if not value:
             raise ValueError('解读不能为空')
@@ -44,14 +46,42 @@ class PaperBrief(BaseModel):
 BRIEF_PROMPT = prompts.DEFAULTS['brief']['text']
 
 
+class BriefLengthError(ValueError):
+    def __init__(self, errors):
+        self.fields = [{'field':error['loc'][0], 'length':len(error['input']),
+                        'limit':error['ctx']['max_length']} for error in errors]
+        labels = {'title_zh':'中文标题', 'problem':'研究问题', 'contribution_result':'主要贡献和结果'}
+        super().__init__('速读内容超过长度限制：' + '，'.join(
+            f"{labels[item['field']]} {item['length']} / {item['limit']} 字符" for item in self.fields))
+
+
+def validate_brief(value):
+    try:
+        return PaperBrief.model_validate(value)
+    except ValidationError as error:
+        errors = error.errors()
+        if errors and all(item['type']=='string_too_long' for item in errors):
+            raise BriefLengthError(errors) from None
+        raise
+
+
 async def generate_brief(paper):
     messages = [{'role': 'system', 'content': prompts.get('brief')},
                 {'role': 'user', 'content': paper['title'] + '\n' + paper['abstract']}]
-    brief = await models.complete('brief', messages, json_mode=True, validate=PaperBrief.model_validate,
-                                  schema=PaperBrief.model_json_schema())
+    def compact(result, error):
+        if not isinstance(error, BriefLengthError):
+            return None
+        event('task','论文速读超长，尝试精简一次',job='tldr_gen',paper_id=paper['id'],fields=error.fields)
+        return [*messages, {'role':'assistant', 'content':dumps(result)},
+                {'role':'user', 'content':prompts.get('brief_compact')+'\n'+str(error)}]
+    try:
+        brief = await models.complete('brief', messages, json_mode=True, validate=validate_brief,
+                                      schema=PaperBrief.model_json_schema(), repair_validation=compact)
+    except BriefLengthError as error:
+        event('task','论文速读精简后仍超长，下次运行重试',level='error',job='tldr_gen',paper_id=paper['id'],fields=error.fields)
+        raise
     value = brief.model_dump()
     check_cancelled()
-    from ..db import dumps
     execute('UPDATE papers SET brief_json=?,tldr=? WHERE id=?',
             (dumps(value), brief.contribution_result, paper['id']))
     return value

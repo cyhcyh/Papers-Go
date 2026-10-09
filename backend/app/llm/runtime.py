@@ -220,13 +220,14 @@ def bind(binding):
         _binding.reset(token)
 
 
-async def complete(feature, messages, json_mode=False, cache_seconds=0, purpose='precise', validate=None, schema=None):
+async def complete(feature, messages, json_mode=False, cache_seconds=0, purpose='precise', validate=None, schema=None, repair_validation=None):
     from .provider import cloud
     from .ollama import ollama
     with model_snapshot():
         selected(feature)
         route = configuration()['routes'][feature]
         choices = [route['primary']] + ([route['fallback']] if route.get('fallback') else [])
+        repaired = False
         for index, choice in enumerate(choices):
             check_cancelled()
             binding = resolve(choice)
@@ -235,17 +236,32 @@ async def complete(feature, messages, json_mode=False, cache_seconds=0, purpose=
                 binding['json_schema'] = schema
             with bind(binding):
                 started = time.perf_counter()
-                try:
+                async def request(request_messages):
                     if binding['kind'] == 'ollama':
-                        prompt = '\n\n'.join(message['content'] for message in messages)
-                        result = await ollama.chat(prompt, json_mode=json_mode)
+                        prompt = '\n\n'.join(message['content'] for message in request_messages)
+                        return await ollama.chat(prompt, json_mode=json_mode)
                     elif binding['kind']=='codex':
                         from .codex import codex
-                        result=await codex.complete(messages,json_mode=json_mode)
+                        return await codex.complete(request_messages,json_mode=json_mode)
                     else:
-                        result = await cloud.complete(messages, purpose=purpose, json_mode=json_mode, cache_seconds=cache_seconds)
+                        return await cloud.complete(request_messages, purpose=purpose, json_mode=json_mode, cache_seconds=cache_seconds)
+                try:
+                    result = await request(messages)
                     check_cancelled()
-                    value = validate(result) if validate else result
+                    try:
+                        value = validate(result) if validate else result
+                    except Exception as error:
+                        if repaired or repair_validation is None:
+                            raise
+                        repair_messages = repair_validation(result, error)
+                        if repair_messages is None:
+                            raise
+                        # The repair allowance is shared by primary and fallback.
+                        repaired = True
+                        check_cancelled()
+                        result = await request(repair_messages)
+                        check_cancelled()
+                        value = validate(result)
                     event('model','模型调用完成',job=feature,model=binding['model'],kind_model=binding['kind'],thinking=binding.get('thinking'),reasoning_effort=binding.get('reasoning_effort'),seconds=round(time.perf_counter()-started,2))
                     return value
                 except Exception as error:
