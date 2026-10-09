@@ -77,8 +77,8 @@ ADVANCED_MODELS = {'fetch_community': Community, 'audit': Audit,
 
 def defaults():
     cfg = settings()
-    times = {'pipeline': '04:30', 'author_impact': '06:20', 'paper_expiry': '11:00',
-             'trend_report': '05:20', 'reflect': '04:00', 'audit': '06:00'}
+    times = {'pipeline': '10:00', 'author_impact': '06:20', 'paper_expiry': '11:00',
+             'trend_report': '10:50', 'reflect': '04:00', 'audit': '06:00'}
     schedules = {name: Schedule(time=time, frequency='weekly' if name in ('reflect', 'audit') else 'daily').model_dump()
                  for name, time in times.items()}
     advanced = {name: model().model_dump() for name, model in ADVANCED_MODELS.items()}

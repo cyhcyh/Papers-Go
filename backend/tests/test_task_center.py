@@ -21,8 +21,8 @@ def test_settings_are_admin_only_and_defaults_match_schedules(client, accounts):
     value = client.get(BASE, headers=headers(admin)).json()
     assert value['timezone'] == 'Asia/Shanghai'
     assert {name:plan['time'] for name,plan in value['schedules'].items()} == {
-        'pipeline':'04:30','author_impact':'06:20','paper_expiry':'11:00',
-        'trend_report':'05:20','reflect':'04:00','audit':'06:00'}
+        'pipeline':'10:00','author_impact':'06:20','paper_expiry':'11:00',
+        'trend_report':'10:50','reflect':'04:00','audit':'06:00'}
     assert all(plan['enabled'] for plan in value['schedules'].values())
     assert value['schedules']['reflect']['frequency'] == 'weekly'
     assert value['schedules']['reflect']['weekdays'] == [6]

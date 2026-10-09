@@ -29,10 +29,11 @@ Papers-Go 是一个可自行部署的论文阅读与推荐网站，提供刷视�
 
 <details>
 <summary>手机端：刷论文、分类抽屉、精读、智能助手与趋势分析</summary>
-<p><img src="docs/images/feed-mobile.jpg" width="360" alt="手机刷论文" /> <img src="docs/images/browse-mobile.jpg" width="360" alt="手机分类与主题抽屉" /></p>
-<p><img src="docs/images/reading-mobile.jpg" width="360" alt="手机论文精读与数学公式" /> <img src="docs/images/assistant-mobile.jpg" width="360" alt="手机智能助手对话与会话入口" /></p>
-<p><img src="docs/images/trends-mobile.jpg" width="360" alt="手机当日热点与趋势分析" /></p>
+<p><img src="docs/images/feed-mobile.jpg" width="300" alt="手机刷论文" /> <img src="docs/images/browse-mobile.jpg" width="300" alt="手机分类与主题抽屉" /></p>
+<p><img src="docs/images/reading-mobile.jpg" width="300" alt="手机论文精读与数学公式" /> <img src="docs/images/assistant-mobile.jpg" width="360" alt="手机智能助手对话与会话入口" /></p>
+<p><img src="docs/images/trends-mobile.jpg" width="300" alt="手机当日热点与趋势分析" /></p>
 </details>
+
 
 <details>
 <summary>分类浏览</summary>
@@ -405,3 +406,7 @@ Papers-Go/
 项目使用 PyMuPDF 等第三方依赖，各依赖的许可证分别适用。PyMuPDF 提供 AGPL 和商业授权选项，详情见 [PyMuPDF 授权说明](https://pymupdf.readthedocs.io/en/latest/about.html#license-and-copyright)。部分界面组件的第三方声明保留在 [frontend/public/third-party-ui-licenses.txt](frontend/public/third-party-ui-licenses.txt)。
 
 欢迎通过 [Issues](https://github.com/cyhcyh/Papers-Go/issues) 反馈问题，也欢迎提交 Pull Request。
+
+## 致谢
+
+本项目的会议来源使用了[bojone/papers.cool](https://github.com/bojone/papers.cool)提供的Feed，论文精读卡部分也受该项目启发，特别感谢。
