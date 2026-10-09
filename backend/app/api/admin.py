@@ -354,11 +354,13 @@ def source_snapshot():
     redo=latest_runs()
     from ..pipeline import author_runs
     author_continuation=author_runs.snapshot()
+    from ..pipeline import paper_retries
+    retries=paper_retries.snapshot()
     return [{**found.get(name,{'name':name,'last_run':None,'last_success':None,'added':0,'error':None,'running':0}),
              **({'continuation':author_continuation} if name=='author_impact' else {}),
              'progress':json.loads(found.get(name,{}).get('progress') or '{}'),
              'missing_configuration':missing_configuration([name],model_config,switches),
-             'redo':redo.get(name),'enabled':switches.get(name,True), 'queued':name in state['queued'], 'stopped':found.get(name,{}).get('error')==STOP_MESSAGE} for name in jobs]
+             'retries':retries.get(name),'redo':redo.get(name),'enabled':switches.get(name,True), 'queued':name in state['queued'], 'stopped':found.get(name,{}).get('error')==STOP_MESSAGE} for name in jobs]
 
 
 from ..pipeline.redo import RedoOptions, preview as redo_preview, create_run, state as redo_state, validate_resume
@@ -374,6 +376,35 @@ def enqueue_redo(name, ident):
         if job_state()['busy']:raise HTTPException(409,'当前有任务运行，请先停止或稍后再试')
         start_manual(name,redo_id=ident)
     else:queue_command('redo',name,ident)
+
+
+@router.post('/jobs/{name}/retry-failed')
+async def retry_failed(name: str):
+    from ..pipeline import paper_retries
+    from .. import prompts
+    if name not in paper_retries.FEATURES:raise HTTPException(404,'此任务不支持重试失败项')
+    if not job_enabled(name):raise HTTPException(409,'任务已禁用，请先启用')
+    require_configuration(name)
+    if name=='assess_quality' and not prompts.skill_enabled('quality'):
+        raise HTTPException(409,'质量评分技能已停用，请先启用')
+    def arrange():
+        with connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            # Model migrations must finish in the staging index, never overwrite
+            # active vectors with another model's output through a normal redo.
+            from ..llm import vector_rebuild
+            rebuilding=name=='build_vectors' and vector_rebuild.pending()
+            ident=paper_retries.create_retry_run(db,name)
+            if settings().pipeline_mode=='inline':
+                if job_state()['busy']:raise HTTPException(409,'当前有任务运行，请先停止或稍后再试')
+                start_manual(name,**({} if rebuilding else {'redo_id':ident}))
+            else:queue_command('start' if rebuilding else 'redo',name,None if rebuilding else ident,db=db)
+            if rebuilding:
+                db.execute('DELETE FROM pipeline_redo_runs WHERE id=?',(ident,))
+        return {'queued':True}
+    value=arrange() if settings().pipeline_mode=='inline' else await asyncio.to_thread(arrange)
+    event('task','管理员安排重试失败论文',job=name)
+    return value
 
 
 @router.post('/jobs/{name}/redo')

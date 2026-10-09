@@ -7,9 +7,9 @@ import {Modal,ErrorBox} from './Common'
 import {SourcePicker} from './SourcePicker'
 import type {Category} from '../types'
 
-export type RedoRun={id:number;status:string;total:number;completed:number;failed:number;options:{components:string[];category_key:string;from_date:string|null;to_date:string|null}}
+export type RedoRun={id:number;status:string;total:number;completed:number;failed:number;options:{mode?:'retry';components:string[];category_key:string;from_date:string|null;to_date:string|null}}
 type Preview={papers:number;profiles:number;components:string[];operations:number}
-export function RedoTask({name,label,disabled,latest,onStarted}:{name:string;label:string;disabled:boolean;latest?:RedoRun|null;onStarted:()=>void}){
+export function RedoTask({name,label,disabled,latest,onStarted,allowNew=true}:{name:string;label:string;disabled:boolean;latest?:RedoRun|null;onStarted:()=>void;allowNew?:boolean}){
  const {toast}=useApp(),[open,setOpen]=useState(false),[category,setCategory]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState(''),[component,setComponent]=useState('both'),[preview,setPreview]=useState<Preview|null>(null),[loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('')
  const vectors=name==='build_vectors',includePapers=!vectors||component!=='profile_embedding'
  const catalog=useLoad<Category[]>(open&&includePapers?'/categories':null)
@@ -17,9 +17,10 @@ export function RedoTask({name,label,disabled,latest,onStarted}:{name:string;lab
  useEffect(()=>{if(!open)return;setPreview(null);setError('');setLoading(true);const abort=new AbortController();const timer=setTimeout(()=>{api<Preview>('/admin/jobs/'+name+'/redo/preview','POST',JSON.parse(signature),abort.signal).then(setPreview).catch(e=>{if(!abort.signal.aborted)setError((e as Error).message)}).finally(()=>{if(!abort.signal.aborted)setLoading(false)})},250);return()=>{clearTimeout(timer);abort.abort()}},[open,signature,name])
  const start=async(resume=false)=>{setBusy(true);setError('');try{await api(resume?`/admin/jobs/${name}/redo/${latest!.id}/resume`:`/admin/jobs/${name}/redo`,'POST',resume?undefined:body);setOpen(false);onStarted();toast(resume?'已继续未完成的重做项':'重做任务已加入队列')}catch(e){setError((e as Error).message);toast((e as Error).message)}finally{setBusy(false)}}
  const resumable=latest&&['stopped','failed'].includes(latest.status)&&latest.completed<latest.total
+ const operation=latest?.options.mode==='retry'?'重试':'重做'
  return <>
-  <div className="redo-task-actions"><button disabled={disabled||busy} onClick={()=>{setCategory('');setFrom('');setTo('');setComponent('both');setOpen(true)}}><RotateCcw size={13}/>全部重做</button>{resumable&&<button disabled={disabled||busy} onClick={()=>void start(true)}><Play size={13}/>继续重做</button>}</div>
-  {latest&&<p className="redo-latest">上次重做：{({queued:'排队中',running:'运行中',stopped:'已停止',failed:'有失败项',completed:'已完成'} as Record<string,string>)[latest.status]} · {latest.completed} / {latest.total} 项{latest.failed?' · 失败 '+latest.failed+' 项':''}</p>}
+  <div className="redo-task-actions">{allowNew&&<button disabled={disabled||busy} onClick={()=>{setCategory('');setFrom('');setTo('');setComponent('both');setOpen(true)}}><RotateCcw size={13}/>全部重做</button>}{resumable&&<button disabled={disabled||busy} onClick={()=>void start(true)}><Play size={13}/>继续{operation}</button>}</div>
+  {latest&&<p className="redo-latest">上次{operation}：{({queued:'排队中',running:'运行中',stopped:'已停止',failed:'有失败项',completed:'已完成'} as Record<string,string>)[latest.status]} · {latest.completed} / {latest.total} 项{latest.failed?' · 失败 '+latest.failed+' 项':''}</p>}
   {open&&<Modal title={label+' · 全部重做'} onClose={()=>!busy&&setOpen(false)}>
    <p className="muted">包含以前已经完成的结果。新结果生成成功后才替换旧结果。停止后，可以继续处理未完成的部分。</p>
    <fieldset className="redo-options" disabled={busy}>

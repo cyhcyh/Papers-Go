@@ -2,7 +2,7 @@
 import json
 import threading
 import asyncio
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
 
@@ -92,9 +92,10 @@ def public_state():
         return worker_state(db)
 
 
-def queue_command(action, name, redo_id=None):
-    with connect() as db:
-        db.execute('BEGIN IMMEDIATE')
+def queue_command(action, name, redo_id=None, *, db=None):
+    own_connection=db is None
+    with (connect() if own_connection else nullcontext(db)) as db:
+        if own_connection:db.execute('BEGIN IMMEDIATE')
         state = worker_state(db)
         if not state['worker_available']: raise HTTPException(503,'后台工作进程尚未就绪，请稍后重试')
         if action in ('start','redo') and state['busy']: raise HTTPException(409,'当前有任务运行，请先停止或稍后再试')

@@ -77,6 +77,8 @@ def init_db(recover=True):
             db.execute('ALTER TABLE reading_cards ADD COLUMN progress_json TEXT')
         from .pipeline.reading_queue import initialize as initialize_reading_queue
         initialize_reading_queue(db)
+        from .pipeline.paper_retries import initialize as initialize_paper_retries
+        initialize_paper_retries(db)
         from .pipeline.fulltext_cache import initialize as initialize_fulltext_cache
         initialize_fulltext_cache(db)
         interaction_columns = {r['name'] for r in db.execute('PRAGMA table_info(interactions)')}

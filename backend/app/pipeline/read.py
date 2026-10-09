@@ -244,17 +244,26 @@ async def card_events(paper_id):
         await asyncio.sleep(.25)
 
 
-async def preread():
+async def preread_paper(paper_id):
     from ..pipeline_control import check_cancelled
-    for paper in rows('SELECT id FROM papers ORDER BY quality_score DESC LIMIT 5'):
-        check_cancelled()
-        request_card(paper['id'],retry=True,source='preread')
-        try:
-            while one('SELECT status FROM reading_cards WHERE paper_id=?',(paper['id'],))['status']=='pending':
-                await asyncio.sleep(.1)
-        except asyncio.CancelledError:
-            await reading_queue.stop_preread(paper['id'])
-            raise
-    failed = rows("SELECT paper_id FROM reading_cards WHERE status='failed'")
-    if failed:
-        raise RuntimeError(f'{len(failed)} 张精读卡生成失败，请检查云端配置及 PDF 来源')
+    check_cancelled()
+    request_card(paper_id,retry=True,source='preread')
+    try:
+        while card:=one('SELECT status,error FROM reading_cards WHERE paper_id=?',(paper_id,)):
+            if card['status']!='pending':break
+            await asyncio.sleep(.1)
+    except asyncio.CancelledError:
+        await reading_queue.stop_preread(paper_id)
+        raise
+    if card and card['status']=='failed':raise RuntimeError(card['error'] or '精读卡生成失败')
+
+
+async def preread():
+    from . import paper_retries
+    failures=0
+    for paper in rows('SELECT id FROM papers WHERE '+paper_retries.eligible('preread')+' ORDER BY quality_score DESC LIMIT 5'):
+        try:await preread_paper(paper['id'])
+        except paper_retries.PausedError:continue
+        except Exception:failures+=1
+    if failures:
+        raise RuntimeError(f'{failures} 张精读卡生成失败，连续失败 3 轮后暂停自动预读')

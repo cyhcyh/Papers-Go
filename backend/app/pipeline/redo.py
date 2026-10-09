@@ -11,9 +11,10 @@ from ..logs import event
 from ..pipeline_control import check_cancelled
 from ..interest.profile import CURRENT_PROFILE_IDS
 from .. import prompts
+from . import paper_retries
 
 JOBS={'classify':['classification'],'tldr_gen':['brief'],
-      'build_vectors':['embedding','profile_embedding'],'assess_quality':['quality']}
+      'build_vectors':['embedding','profile_embedding'],'assess_quality':['quality'],'preread':['reading']}
 SCHEMA='''
 CREATE TABLE IF NOT EXISTS pipeline_redo_runs (
  id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,options TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'queued',
@@ -172,18 +173,17 @@ async def process(item):
     paper=one('SELECT * FROM papers WHERE id=?',(item['paper_id'],))
     if not paper:return
     if component=='embedding':
-        from ..llm.embedding_queue import background
-        async with background():vectors=await models.embed([paper['title']+'\n'+(paper['abstract'] or '')])
-        if len(vectors)!=1 or len(vectors[0])!=settings().embedding_dim:raise ValueError('向量结果维度不匹配')
-        from ..llm.vector_rebuild import _database_step
-        check_cancelled()
-        await _database_step(set_paper_vector,paper['id'],vectors[0])
+        from .embed import embed_paper
+        await embed_paper(paper)
     elif component=='quality':
         from .embed import score_paper
         await score_paper(paper)
     elif component=='classification':
         from .classify import classify_paper
         await classify_paper(paper)
+    elif component=='reading':
+        from .read import preread_paper
+        await preread_paper(paper['id'])
     else:
         from .tldr import generate_brief
         await generate_brief(paper)
@@ -201,7 +201,7 @@ async def run(ident, name):
         raise ValueError('向量模型已变化，不能继续旧重做任务')
     execute("UPDATE pipeline_redo_runs SET status='running',error=NULL,updated_at=? WHERE id=?",(now(),ident))
     execute("UPDATE pipeline_redo_items SET status='pending',error=NULL WHERE run_id=? AND status!='done'",(ident,))
-    feature={'classify':'classify','tldr_gen':'brief','build_vectors':'embedding','assess_quality':'quality'}[name]
+    feature=paper_retries.FEATURES[name]
     items=rows("SELECT * FROM pipeline_redo_items WHERE run_id=? AND status='pending' ORDER BY id",(ident,))
     active_component=None
     def progress():

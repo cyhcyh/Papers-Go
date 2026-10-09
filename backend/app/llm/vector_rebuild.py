@@ -255,6 +255,7 @@ async def run():
     from .catalog import embedding_info
     from ..pipeline.progress import TaskProgress
     from ..interest.profile import profile_embedding,embedding_inputs
+    from ..pipeline import paper_retries
     value=pending()
     if not value:return 0
     await _database_step(vector_store.ensure)
@@ -275,15 +276,22 @@ async def run():
                 while True:
                     check_cancelled()
                     progress.begin('embedding')
-                    while batch:=await _database_step(_pending_rows,PAPERS+' LIMIT ?',(batch_size*concurrency,)):
+                    eligible_papers='SELECT * FROM ('+PAPERS+') WHERE '+paper_retries.eligible('build_vectors')+' ORDER BY id'
+                    while batch:=await _database_step(_pending_rows,eligible_papers+' LIMIT ?',(batch_size*concurrency,)):
                         check_cancelled()
                         async def process(papers):
-                            vectors=await models.embed([p['title']+'\n'+(p['abstract'] or '') for p in papers])
-                            check_cancelled()
-                            def save():
-                                with vector_store.writer(name) as db:
-                                    vector_store.stage(db,[(paper['id'],paper['title'],paper['abstract'] or '',pack(vector)) for paper,vector in zip(papers,vectors)])
-                            await _database_step(save)
+                            try:
+                                vectors=await models.embed([p['title']+'\n'+(p['abstract'] or '') for p in papers])
+                                check_cancelled()
+                                def save():
+                                    with vector_store.writer(name) as db:
+                                        vector_store.stage(db,[(paper['id'],paper['title'],paper['abstract'] or '',pack(vector)) for paper,vector in zip(papers,vectors)])
+                                await _database_step(save)
+                            except Exception:
+                                check_cancelled()
+                                paper_retries.failed('build_vectors',[p['id'] for p in papers])
+                                raise
+                            paper_retries.succeeded('build_vectors',[p['id'] for p in papers])
                             progress.finish('embedding',completed=len(papers),paper=papers[0])
                         tasks=[asyncio.create_task(process(batch[i:i+batch_size])) for i in range(0,len(batch),batch_size)]
                         try:await asyncio.gather(*tasks)
@@ -293,6 +301,8 @@ async def run():
                             await asyncio.gather(*tasks,return_exceptions=True)
                         from ..background_load import yield_to_web
                         await yield_to_web()
+                    if await _database_step(_pending_rows,PAPERS+' LIMIT 1'):
+                        raise paper_retries.PausedError('部分论文向量已暂停自动处理，请使用“重试失败项”恢复。原向量仍然可用')
                     progress.begin('profile_embedding')
                     while batch:=await _database_step(_pending_rows,PROFILES+' LIMIT 32'):
                         for profile in batch:

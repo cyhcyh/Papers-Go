@@ -7,6 +7,7 @@ from ..db import rows, one, execute, dumps
 from ..logs import event
 from ..pipeline_control import check_cancelled
 from .progress import TaskProgress
+from . import paper_retries
 from ..llm.ollama import ollama
 from ..llm.provider import cloud
 from ..interest.profile import current
@@ -65,6 +66,7 @@ def validate_brief(value):
         raise
 
 
+@paper_retries.tracked('tldr_gen')
 async def generate_brief(paper):
     messages = [{'role': 'system', 'content': prompts.get('brief')},
                 {'role': 'user', 'content': paper['title'] + '\n' + paper['abstract']}]
@@ -78,7 +80,7 @@ async def generate_brief(paper):
         brief = await models.complete('brief', messages, json_mode=True, validate=validate_brief,
                                       schema=PaperBrief.model_json_schema(), repair_validation=compact)
     except BriefLengthError as error:
-        event('task','论文速读精简后仍超长，下次运行重试',level='error',job='tldr_gen',paper_id=paper['id'],fields=error.fields)
+        event('task','论文速读精简后仍超长，本轮处理失败',level='error',job='tldr_gen',paper_id=paper['id'],fields=error.fields)
         raise
     value = brief.model_dump()
     check_cancelled()
@@ -88,7 +90,8 @@ async def generate_brief(paper):
 
 
 async def tldr_gen():
-    snapshot=one('SELECT COUNT(*) n,COALESCE(MAX(id),0) max_id FROM papers WHERE brief_json IS NULL')
+    eligible=paper_retries.eligible('tldr_gen')
+    snapshot=one('SELECT COUNT(*) n,COALESCE(MAX(id),0) max_id FROM papers WHERE brief_json IS NULL AND '+eligible)
     total,max_id=snapshot['n'],snapshot['max_id']
     errors=0
     concurrency=models.concurrency('brief')
@@ -106,7 +109,7 @@ async def tldr_gen():
                 else:
                     after=' AND (quality_score<? OR quality_score IS NULL OR (quality_score=? AND id>?))'
                     parameters.extend([cursor[0],cursor[0],cursor[1]])
-            found=rows('SELECT id,title,abstract,quality_score FROM papers WHERE brief_json IS NULL AND id<=?'+after+' ORDER BY quality_score DESC,id LIMIT 64',
+            found=rows('SELECT id,title,abstract,quality_score FROM papers WHERE brief_json IS NULL AND '+eligible+' AND id<=?'+after+' ORDER BY quality_score DESC,id LIMIT 64',
                        parameters)
             if not found:return None
             cursor=(found[-1]['quality_score'],found[-1]['id'])
@@ -128,7 +131,7 @@ async def tldr_gen():
             except Exception as error:
                 errors+=1
                 progress.finish('brief',failed=1,seconds=time.perf_counter()-started,paper=p)
-                event('task','论文速读失败，下次运行重试',level='error',job='tldr_gen',paper_id=p['id'],error_type=type(error).__name__)
+                event('task','论文速读本轮处理失败',level='error',job='tldr_gen',paper_id=p['id'],error_type=type(error).__name__)
     workers = [asyncio.create_task(worker()) for _ in range(min(concurrency,total))]
     try:
         await asyncio.gather(*workers)
@@ -139,7 +142,7 @@ async def tldr_gen():
         await asyncio.gather(*workers,return_exceptions=True)
         progress.close()
     if errors:
-        raise RuntimeError(f'{errors} 篇论文速读待重试')
+        raise RuntimeError(f'{errors} 篇论文速读失败，连续失败 3 轮后暂停自动处理')
     return progress.value()['completed']
 
 

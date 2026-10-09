@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react'
-import {Clock,Settings2,Play,Square,Database,Trophy,Users,Tag,Network,ShieldCheck,FileText,List,ChartNoAxesCombined,Bell,Layers,ScanSearch,TrendingUp,ChartPie,UserRound,Trash2,Workflow,Activity,CirclePause,TriangleAlert,type LucideIcon} from 'lucide-react'
+import {Clock,Settings2,Play,Square,Database,Trophy,Users,Tag,Network,ShieldCheck,FileText,List,ChartNoAxesCombined,Bell,Layers,ScanSearch,TrendingUp,ChartPie,UserRound,Trash2,Workflow,Activity,CirclePause,TriangleAlert,RotateCcw,LoaderCircle,Ban,type LucideIcon} from 'lucide-react'
 import {api,ApiError} from '../api'
 import {Link,useLocation} from 'react-router-dom'
 import {useLoad} from '../hooks/useLoad'
@@ -15,7 +15,7 @@ import '../task-center.css'
 type TaskState={busy:boolean;stopping:boolean;stopping_pipeline?:boolean;stopping_names?:string[];active:string[];queued:string[];pipeline:boolean;worker_available?:boolean;execution?:string}
 type AuthorContinuation={phase:'running'|'waiting'|'retry'|'failed'|'complete'|'stopped'|'disabled';processed:number;pending:number;next_run:string|null}
 type MissingModel={feature:string;name:string;reason:string}
-type Source={missing_configuration?:MissingModel[];redo?:RedoRun|null;enabled:boolean;progress?:TaskProgressData;continuation?:AuthorContinuation|null;name:string;running:number;queued?:boolean;stopped?:boolean;error:string|null;last_success:string|null;added:number}
+type Source={retries?:{failed:number;paused:number;limit:number}|null;missing_configuration?:MissingModel[];redo?:RedoRun|null;enabled:boolean;progress?:TaskProgressData;continuation?:AuthorContinuation|null;name:string;running:number;queued?:boolean;stopped?:boolean;error:string|null;last_success:string|null;added:number}
 const icons:Record<string,LucideIcon>={fetch_arxiv:Database,fetch_conf:Trophy,fetch_community:Users,classify:Tag,build_vectors:Network,assess_quality:ShieldCheck,tldr_gen:FileText,preread:List,trend_stats:ChartNoAxesCombined,alert_eval:Bell,metrics:Layers,reflect:ScanSearch,trend_report:TrendingUp,audit:ChartPie,author_impact:UserRound,paper_expiry:Trash2}
 const iconTones:Record<string,'blue'|'purple'|'green'|'amber'|'red'>={fetch_arxiv:'purple',fetch_conf:'blue',fetch_community:'amber',classify:'green',build_vectors:'purple',assess_quality:'blue',tldr_gen:'purple',preread:'amber',trend_stats:'green',alert_eval:'red',metrics:'blue',reflect:'green',trend_report:'blue',audit:'purple',author_impact:'blue',paper_expiry:'purple'}
 const descriptions:Record<string,string>={fetch_arxiv:'按分类同步新增及更新论文，按 ID 与版本去重。',fetch_conf:'读取各会议最新一届论文，保留真实标题和会议标签。',fetch_community:'更新 Hugging Face 点赞与 GitHub 仓库 stars，复用缓存。',classify:'为论文选择唯一研究主题，新方向提议需管理员批准。',build_vectors:'生成论文和用户兴趣向量，用于语义检索与推荐。',assess_quality:'结合研究贡献、会议、作者和社区信号计算参考质量。',tldr_gen:'生成中文译名、研究问题、主要贡献和结果，共享缓存。',preread:'为全库质量分最高的 5 篇预生成精读卡，已有卡片复用。',trend_stats:'按主题与日期汇总论文数量及平均质量，不调用模型。',alert_eval:'增量检查监视项与研究方向，生成通知。',metrics:'汇总浏览、喜欢、收藏、跳过和展开等每日指标。',reflect:'根据最近 7 天的行为调整兴趣画像，无新行为则跳过。',trend_report:'为近期活跃用户生成方向趋势简述，复用已有缓存。',audit:'抽查主题分类并记录结果，按既有规则修正未归类论文。',author_impact:'从 OpenAlex 确认作者，缓存跨学科高被引数量，供质量分与推荐分共用。',paper_expiry:'分批清退到期论文及关联数据，正在生成或排队的论文暂缓清退。'}
@@ -24,6 +24,7 @@ const advancedTasks=['fetch_community','audit','author_impact','paper_expiry']
 export function TaskCenter(){
  const {toast}=useApp(),[busy,setBusy]=useState(false),[dialog,setDialog]=useState<string|null>(null)
  const [missingModels,setMissingModels]=useState<MissingModel[]|null>(null),location=useLocation()
+ const [retrying,setRetrying]=useState<string|null>(null)
  const modelsPath=location.pathname.replace(/\/[^/]*\/?$/,'/models')
  const sources=useLoad<Source[]>('/admin/sources'),state=useLoad<TaskState>('/admin/jobs'),config=useLoad<TaskConfiguration>('/admin/task-center')
  const refresh=()=>{sources.reload();state.reload()}
@@ -33,32 +34,49 @@ export function TaskCenter(){
  useEffect(()=>{const timer=setInterval(()=>{if(document.visibilityState==='visible')config.reload()},60000);return()=>clearInterval(timer)},[config.reload])
  const run=async(work:()=>Promise<unknown>,message:string)=>{setBusy(true);try{await work();refresh();if(message)toast(message)}catch(e){const detail=e instanceof ApiError?e.detail as {code?:string;missing?:MissingModel[]}:null;if(detail?.code==='model_configuration_missing'&&detail.missing)setMissingModels(detail.missing);else toast((e as Error).message)}finally{setBusy(false)}}
  const stop=(name:string)=>run(async()=>{const result=await api<TaskState>('/admin/jobs/'+name+'/stop','POST');toast(result.stopping?'正在停止任务':'任务已停止')},'')
+ const retryFailed=async(name:string)=>{setRetrying(name);try{await run(()=>api('/admin/jobs/'+name+'/retry-failed','POST'),'失败论文已加入重试队列')}finally{setRetrying(null)}}
  const saved=(value:TaskConfiguration)=>{config.setData(value);toast('设置已保存')}
  const card=(source:Source,index?:number)=>{
   const stopping=state.data?.stopping_names?.includes(source.name),schedule=config.data?.schedules[source.name]
   const continuation=source.continuation,waiting=!!continuation&&['waiting','retry'].includes(continuation.phase)
   const authorStatus=continuation?({waiting:'等待续跑',retry:'等待重试',failed:'失败暂停',complete:'本轮完成',stopped:'已停止'} as Record<string,string>)[continuation.phase]:undefined
   const unconfigured=!!source.missing_configuration?.length
-  const status=stopping?'正在停止':source.running?'运行中':!source.enabled?'已禁用':source.queued?'等待执行':source.stopped?'已停止':unconfigured?'待配置':authorStatus|| (source.error&&!source.error.startsWith('待配置：')?'需要检查':source.last_success?'运行正常':'尚未运行')
-  const tone=stopping?'amber':source.running?'green':!source.enabled?'neutral':source.queued||waiting?'amber':source.stopped||continuation?.phase==='stopped'?'neutral':unconfigured?'amber':source.error&&!source.error.startsWith('待配置：')?'red':source.last_success||continuation?.phase==='complete'?'green':'amber'
+  const status=stopping?'正在停止':source.running?'运行中':!source.enabled?'已禁用':source.queued?'等待执行':source.stopped?'已停止':unconfigured?'待配置':source.retries?.paused?'部分已暂停':source.retries?.failed?'待重试':authorStatus|| (source.error&&!source.error.startsWith('待配置：')?'需要检查':source.last_success?'运行正常':'尚未运行')
+  const tone=stopping?'amber':source.running?'green':!source.enabled?'neutral':source.queued||waiting?'amber':source.stopped||continuation?.phase==='stopped'?'neutral':unconfigured||source.retries?.failed?'amber':source.error&&!source.error.startsWith('待配置：')?'red':source.last_success||continuation?.phase==='complete'?'green':'amber'
   const redo=['classify','build_vectors','assess_quality','tldr_gen'].includes(source.name)
-  return <ContentCard as="article" className={'task-center-card'+(!source.enabled?' task-is-disabled':'')} key={source.name}>
-   <span className={'task-run-status '+tone}><i aria-hidden="true"/>{status}</span>
-   <div className="task-center-card-header">{index!==undefined&&<span className="task-stage-index" aria-label={'第 '+(index+1)+' 步'}>{index+1}</span>}<IconTile icon={icons[source.name]||Workflow} tone={iconTones[source.name]||'blue'}/><div className="task-center-card-identity"><h3>{taskNames[source.name]}</h3><StatusBadge tone={source.enabled?'green':'neutral'}>{source.enabled?'已启用':'已禁用'}</StatusBadge></div></div>
+  const stage=source.progress?.stages?.length?source.progress.stages.find(item=>item.key===source.progress?.stage):source.progress
+  const hasStats=!!stage&&stage.total>0
+  const fetchCount=['fetch_arxiv','fetch_conf','alert_eval'].includes(source.name)&&source.progress?.processed!==undefined
+  const addedCount=!['fetch_arxiv','fetch_conf','alert_eval','build_vectors','assess_quality','author_impact'].includes(source.name)&&source.added>0
+  const StatusIcon=tone==='red'?TriangleAlert:source.running||tone==='green'?Activity:stopping||source.stopped||continuation?.phase==='stopped'||source.retries?.paused||!source.enabled?CirclePause:Clock
+  return <ContentCard as="article" className={'task-center-card'+(!source.enabled?' task-is-disabled':'')+(source.running?' task-is-running':'')} key={source.name}>
+   <div className="task-center-card-header"><div className="task-center-card-heading">{index!==undefined&&<span className="task-stage-index" aria-label={'第 '+(index+1)+' 步'}>{index+1}</span>}<IconTile icon={icons[source.name]||Workflow} tone={iconTones[source.name]||'blue'}/><div className="task-center-card-identity"><h3>{taskNames[source.name]}</h3><StatusBadge tone={source.enabled?'green':'neutral'}>{source.enabled?'已启用':'已禁用'}</StatusBadge></div></div><span className={'task-run-status '+tone}><StatusIcon size={20} strokeWidth={1.7} aria-hidden="true"/>{status}</span></div>
    <p className="task-center-description">{descriptions[source.name]}</p>
+   <dl className="task-center-runtime">
+    <div className="task-last-run"><dt>上次成功</dt><dd>{formatTime(source.last_success)}</dd></div>
+    {hasStats?<><div><dt>处理论文</dt><dd>{(stage.completed||0)+(stage.failed||0)} <small>{stage.unit||'篇'}</small></dd></div><div><dt>成功</dt><dd>{stage.completed||0} <small>{stage.unit||'篇'}</small></dd></div><div><dt>失败</dt><dd>{stage.failed||0} <small>{stage.unit||'篇'}</small></dd></div></>:continuation?<><div><dt>已处理</dt><dd>{continuation.processed} <small>篇</small></dd></div><div><dt>待处理</dt><dd>{continuation.pending} <small>篇</small></dd></div></>:fetchCount?<div><dt>已处理</dt><dd>{source.progress?.processed} <small>篇</small></dd></div>:addedCount?<div><dt>{source.name==='paper_expiry'?'已清退':'本轮处理'}</dt><dd>{source.added} <small>篇</small></dd></div>:null}
+   </dl>
    {index===undefined&&<p className="task-center-schedule"><Clock size={14}/>{scheduleText(schedule)}</p>}
    {schedule?.enabled&&<small className="task-next-run">下次触发：{formatTime(schedule.next_run)}</small>}
-   <div className="task-center-runtime"><small className="task-last-run">最近成功：{formatTime(source.last_success)}</small></div>
-   {!['fetch_arxiv','fetch_conf','alert_eval','build_vectors','assess_quality','author_impact'].includes(source.name)&&source.added>0&&<p className="task-center-count">{source.name==='paper_expiry'?'已清退':'本轮处理'} {source.added} 篇</p>}
-   {continuation&&<p className="fetch-count">已处理 {continuation.processed} 篇 · 待处理 {continuation.pending} 篇</p>}
+   {addedCount&&hasStats&&<p className="task-center-count">{source.name==='paper_expiry'?'已清退':'本轮处理'} {source.added} 篇</p>}
+   {continuation&&hasStats&&<p className="fetch-count">已处理 {continuation.processed} 篇 · 待处理 {continuation.pending} 篇</p>}
    {continuation?.phase==='retry'&&<small className="task-next-run">自动重试：{formatTime(continuation.next_run)}</small>}
    {continuation?.phase==='failed'&&<small className="task-next-run">进度已保存，下次计划任务继续。</small>}
    {unconfigured?<p className="hint">{source.missing_configuration?.map(item=>item.name+'：'+item.reason).join('、')}</p>:source.error&&!source.stopped&&!source.error.startsWith('待配置：')&&<p className="error-text">{source.error}</p>}
-   {['fetch_arxiv','fetch_conf','alert_eval'].includes(source.name)&&source.progress?.processed!==undefined&&<p className="fetch-count">已处理 {source.progress.processed} 篇</p>}
-   {source.progress&&(source.progress.total>0||source.progress.stages)&&<JobProgress progress={source.progress} running={!!source.running}/>}
-   <div className="task-center-card-footer"><div className="task-center-buttons"><button className="task-toggle-button" aria-pressed={source.enabled} disabled={busy} onClick={()=>run(()=>api('/admin/jobs/'+source.name,'PATCH',{enabled:!source.enabled}),source.enabled?'任务已禁用':'任务已启用')}>{source.enabled?'禁用':'启用'}</button><button className="task-run-button" disabled={busy||active||!source.enabled||state.data?.worker_available===false} onClick={()=>run(()=>api('/admin/jobs/'+source.name,'POST'),'任务已加入队列')}><Play size={13}/>现在运行</button><button className="task-stop-button" disabled={busy||(!source.running&&!source.queued&&!waiting)||stopping} aria-label={'停止'+taskNames[source.name]} onClick={()=>stop(source.name)}><Square size={13}/>{source.queued?'取消排队':'停止'}</button></div>
+   {fetchCount&&(hasStats||continuation)&&<p className="fetch-count">已处理 {source.progress?.processed} 篇</p>}
+   {source.progress&&(source.progress.total>0||source.progress.stages)&&<JobProgress progress={source.progress} running={!!source.running} card/>}
+   {!!source.retries?.failed&&<div className={'task-retry-notice'+(source.retries.paused?' has-paused':'')} role="status">
+    <CirclePause className="task-retry-icon" size={19} aria-hidden="true"/>
+    <div className="task-retry-content"><strong>{source.retries.paused?`已暂停 ${source.retries.paused} 篇`:`待重试 ${source.retries.failed} 篇`}</strong><p>{source.retries.paused?`连续失败 ${source.retries.limit} 轮，已暂停自动处理。`:`连续失败 ${source.retries.limit} 轮后会暂停自动处理。`}</p>
+     <button disabled={busy||active||!source.enabled||state.data?.worker_available===false} onClick={()=>void retryFailed(source.name)}>{retrying===source.name?<LoaderCircle size={14} className="task-retry-loading"/>:<RotateCcw size={14}/>} {retrying===source.name?'正在安排…':'重试失败项'}</button>
+     <small>仅重试{source.retries.failed>source.retries.paused&&source.retries.paused?`全部 ${source.retries.failed} 篇`:'该任务的'}失败论文，保留已有结果。</small>
+    </div>
+   </div>}
+   <div className="task-center-card-footer"><div className="task-center-buttons"><button className="task-toggle-button" aria-pressed={source.enabled} disabled={busy} onClick={()=>run(()=>api('/admin/jobs/'+source.name,'PATCH',{enabled:!source.enabled}),source.enabled?'任务已禁用':'任务已启用')}><Ban size={15} aria-hidden="true"/>{source.enabled?'禁用':'启用'}</button><button className="task-run-button" disabled={busy||active||!source.enabled||state.data?.worker_available===false} onClick={()=>run(()=>api('/admin/jobs/'+source.name,'POST'),'任务已加入队列')}><Play size={15}/>现在运行</button><button className="task-stop-button" disabled={busy||(!source.running&&!source.queued&&!waiting)||stopping} aria-label={'停止'+taskNames[source.name]} onClick={()=>stop(source.name)}><Square size={15}/>{source.queued?'取消排队':'停止'}</button></div>
+    <div className="task-center-secondary-actions">
     {advancedTasks.includes(source.name)&&<button className="task-advanced-button" disabled={!config.data||busy} onClick={()=>setDialog(source.name)}><Settings2 size={14}/>高级设置</button>}
-    {redo&&<RedoTask name={source.name} label={taskNames[source.name]} disabled={busy||active||!source.enabled||state.data?.worker_available===false} latest={source.redo} onStarted={refresh}/>}
+    {(redo||source.redo?.options.mode==='retry')&&<RedoTask name={source.name} label={taskNames[source.name]} allowNew={redo} disabled={busy||active||!source.enabled||state.data?.worker_available===false} latest={source.redo} onStarted={refresh}/>}
+    </div>
    </div>
   </ContentCard>
  }

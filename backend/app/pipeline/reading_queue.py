@@ -7,6 +7,7 @@ from ..db import connect, one, dumps
 from ..llm import runtime as models
 from ..logs import event
 from ..pipeline_control import cancellation_scope
+from . import paper_retries
 
 _stop_requests = {}
 
@@ -46,6 +47,7 @@ def enqueue(paper_id, level='L2', retry=False, regenerate=False, source='user',a
         if cached and cached['status']=='failed' and not (retry or regenerate):return dict(cached)
         # Compatibility with an already running call from the previous application version.
         if cached and cached['status']=='pending':return dict(cached)
+        if source=='preread':paper_retries.check('preread',paper_id)
         try:binding=models.selected(feature)
         except ValueError as error:raise HTTPException(409,str(error)) from error
         kind='ollama' if binding['kind']=='ollama' else 'cloud'
@@ -71,6 +73,12 @@ async def _run(job):
         # Shared user cards outlive the pipeline that first queued a preread.
         with cancellation_scope(requested):
             await read.run_card(job['paper_id'],job['level'])
+            from ..pipeline_control import check_cancelled
+            check_cancelled()
+            card=one('SELECT status FROM reading_cards WHERE paper_id=?',(job['paper_id'],))
+            if card and card['status']=='ready':paper_retries.succeeded('preread',[job['paper_id']])
+            elif card and card['status']=='failed' and job['source']=='preread':
+                paper_retries.failed('preread',[job['paper_id']])
     finally:
         _stop_requests.pop(task,None)
         with connect() as db:db.execute('DELETE FROM reading_jobs WHERE id=?',(job['id'],))

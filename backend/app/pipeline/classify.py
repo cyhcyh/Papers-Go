@@ -10,6 +10,7 @@ from ..topic_semantics import semantic_candidates,ensure_index
 from ..logs import event
 from .topic_decision import predict_topic
 from ..pipeline_control import check_cancelled
+from . import paper_retries
 
 
 async def check_service():
@@ -72,6 +73,7 @@ async def _classify_paper(paper):
           job='classify',paper_id=paper['id'],topic_id=ident,standard_key=key,confidence=confidence,state=state)
 
 
+@paper_retries.tracked('classify')
 async def classify_paper(paper):
     try:
         return await _classify_paper(paper)
@@ -89,7 +91,8 @@ async def classify(limit=None, batch_id=None):
     latest_batch=latest()
     priority=batch_id or (latest_batch['id'] if latest_batch else None)
     membership='id IN (SELECT paper_id FROM arxiv_batch_papers WHERE batch_id=?)'
-    total=one('SELECT COUNT(*) n FROM papers WHERE classified=0'+(' AND '+membership if batch_id else ''),[batch_id] if batch_id else [])['n']
+    eligible=paper_retries.eligible('classify')
+    total=one('SELECT COUNT(*) n FROM papers WHERE classified=0 AND '+eligible+(' AND '+membership if batch_id else ''),[batch_id] if batch_id else [])['n']
     if limit is not None:
         total = min(total,limit)
     start = time.perf_counter()
@@ -125,10 +128,10 @@ async def classify(limit=None, batch_id=None):
         paper = next(batch, None)
         if paper is None:
             condition=(' AND '+membership if phase==0 else ' AND NOT '+membership) if priority else ''
-            found=rows('SELECT * FROM papers WHERE classified=0 AND id>?'+condition+' ORDER BY id LIMIT 100',[last_id,*([priority] if priority else [])])
+            found=rows('SELECT * FROM papers WHERE classified=0 AND '+eligible+' AND id>?'+condition+' ORDER BY id LIMIT 100',[last_id,*([priority] if priority else [])])
             if not found and phase==0 and batch_id is None:
                 phase=1;last_id=0
-                found=rows('SELECT * FROM papers WHERE classified=0 AND id>? AND NOT '+membership+' ORDER BY id LIMIT 100',[last_id,priority])
+                found=rows('SELECT * FROM papers WHERE classified=0 AND '+eligible+' AND id>? AND NOT '+membership+' ORDER BY id LIMIT 100',[last_id,priority])
             if not found:return None
             last_id = found[-1]['id']
             batch = iter(found)
@@ -175,5 +178,5 @@ async def classify(limit=None, batch_id=None):
         await asyncio.gather(*workers, return_exceptions=True)
         progress()
     if errors:
-        raise RuntimeError(f'{failed} 篇分类失败，将在下次重试；{errors[0]}')
+        raise RuntimeError(f'{failed} 篇分类失败，连续失败 3 轮后暂停自动处理。{errors[0]}')
     return completed

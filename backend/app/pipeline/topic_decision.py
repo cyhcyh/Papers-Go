@@ -65,7 +65,10 @@ async def predict_topic(paper,options):
             extra=prompts.get('topic_proposal')+'\n这是完整方向目录。先考虑所有现有条目的描述。如果有合适项，选择其 id 且 new_topic=null。只有没有合适项才 standard_key=null,no_suitable_topic=true 并填写 new_topic，禁止自创 id。\n已停用、拒绝或合并主题（不得以同义名称重新提议）：'+json.dumps([{'name':t['name_en'],'name_zh':t['name_zh'],'description':t['description']} for t in blocked],ensure_ascii=False)+'\n已有待审核提议（同一方向沿用名称与描述）：'+json.dumps(pending,ensure_ascii=False)
             extra+='\n新主题 discipline 必须从以下八个学科中选一个：'+json.dumps(DISCIPLINES,ensure_ascii=False)+'。参考论文原始主分类、交叉分类和会议的学科；跨学科论文以主要科学贡献决定学科。来源只是依据，不能据此把借用的方法当作主要研究对象。不得创造其他学科，也不得添加或启用抓取来源。'
         messages=[{'role':'user','content':prompts.get('classify')+'\n'+contract+'\n'+extra+material(paper,options)}]
+        failed_output=None
         def validate(raw):
+            nonlocal failed_output
+            failed_output=json.dumps(raw,ensure_ascii=False)
             if isinstance(raw,dict):
                 raw=dict(raw)
                 key=raw.get('standard_key')
@@ -101,7 +104,10 @@ async def predict_topic(paper,options):
             except ValueError as error:
                 if attempt==2:raise ClassificationError(models.safe_error(error)[:300],attempts=calls) from error
                 event('topic','分类返回无效，重试一次',level='warning',job='classify',paper_id=paper['id'],stage='validation',error=models.safe_error(error)[:300])
-                messages=[*messages,{'role':'user','content':'上次返回未通过校验：'+models.safe_error(error)[:200]+'。请修正 JSON 字段，按 schema 返回；不得输出目录外 ID。'}]
+                failed_output=error.doc if isinstance(error,json.JSONDecodeError) else failed_output
+                messages=[*messages,
+                    *([{'role':'assistant','content':failed_output[:24000]}] if failed_output else []),
+                    {'role':'user','content':prompts.get('classify_repair')+'\n校验错误：'+models.safe_error(error)[:500]}]
     value=await request(options) if options else None
     if value is None or value.no_suitable_topic and value.confidence<UNCERTAIN_THRESHOLD:
         full=[e for e in catalog().values() if not blocked_entry(e,blocked)]

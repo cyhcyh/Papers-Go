@@ -14,6 +14,7 @@ from ..logs import event
 from ..pipeline_control import check_cancelled
 from .progress import TaskProgress
 from ..interest.profile import CURRENT_PROFILE_IDS
+from . import paper_retries
 
 
 class QualityAssessment(BaseModel):
@@ -48,6 +49,7 @@ def quality_material(paper, cached=None):
 
 
 @using_fulltext
+@paper_retries.tracked('assess_quality')
 async def score_paper(p):
     if not prompts.skill_enabled('quality'):raise RuntimeError('质量评分技能已停用，原结果保留')
     key, material = quality_material(p, fulltext_cache.get(p['id']))
@@ -71,6 +73,17 @@ async def score_paper(p):
         recompute(db,p['id'])
 
 
+@paper_retries.tracked('build_vectors')
+async def embed_paper(paper):
+    from ..llm.embedding_queue import background
+    from ..llm.vector_rebuild import _database_step
+    from ..db import set_paper_vector
+    async with background():vectors=await models.embed([paper['title']+'\n'+(paper['abstract'] or '')])
+    validate_vectors(vectors,1)
+    check_cancelled()
+    await _database_step(set_paper_vector,paper['id'],vectors[0])
+
+
 @models.model_task
 async def build_vectors():
     from ..llm import vector_rebuild
@@ -78,7 +91,8 @@ async def build_vectors():
     errors = []
     max_id=one('SELECT COALESCE(MAX(id),0) n FROM papers')['n']
     profiles=rows(f"SELECT * FROM interest_profile WHERE (embedding_parts IS NULL OR (embedding IS NULL AND embedding_parts!='[]')) AND id IN ({CURRENT_PROFILE_IDS})")
-    embedding_total=one('SELECT COUNT(*) n FROM papers WHERE id<=? AND embedding IS NULL',(max_id,))['n']
+    eligible=paper_retries.eligible('build_vectors')
+    embedding_total=one('SELECT COUNT(*) n FROM papers WHERE id<=? AND embedding IS NULL AND '+eligible,(max_id,))['n']
     progress=TaskProgress('build_vectors',[
         ('embedding','论文向量',embedding_total,'篇',models.selected('embedding')['model'],models.embedding_parallelism(background=True)),
         ('profile_embedding','当前兴趣向量',len(profiles),'份',models.selected('embedding')['model'],1)])
@@ -88,7 +102,7 @@ async def build_vectors():
         async def embed_batch(batch):
             from ..llm.embedding_queue import background
             async with background():return await models.embed([p['title']+'\n'+(p['abstract'] or '') for p in batch])
-        while batch := rows('SELECT id,title,abstract FROM papers WHERE id>? AND id<=? AND embedding IS NULL ORDER BY id LIMIT ?',(last_id,max_id,32*models.embedding_parallelism(background=True))):
+        while batch := rows('SELECT id,title,abstract FROM papers WHERE id>? AND id<=? AND embedding IS NULL AND '+eligible+' ORDER BY id LIMIT ?',(last_id,max_id,32*models.embedding_parallelism(background=True))):
             check_cancelled()
             last_id=batch[-1]['id']
             started=time.perf_counter();progress.begin('embedding',batch[0])
@@ -106,11 +120,14 @@ async def build_vectors():
                 from ..llm.vector_rebuild import _database_step
                 check_cancelled()
                 await _database_step(set_many,batch,[pack(vector) for vector in vectors])
+                paper_retries.succeeded('build_vectors',[p['id'] for p in batch])
                 progress.finish('embedding',completed=len(batch),seconds=time.perf_counter()-started,paper=batch[0])
                 from ..background_load import yield_to_web
                 await yield_to_web()
             except asyncio.CancelledError:raise
             except Exception as error:
+                check_cancelled()
+                paper_retries.failed('build_vectors',[p['id'] for p in batch])
                 errors.extend([type(error).__name__]*len(batch))
                 progress.finish('embedding',failed=len(batch),seconds=time.perf_counter()-started,paper=batch[0])
                 event('task','论文向量批次失败',level='error',job='build_vectors',count=len(batch),error_type=type(error).__name__)
@@ -148,7 +165,8 @@ async def assess_quality():
     if not prompts.skill_enabled('quality'): return 0
     errors=[]
     max_id=one('SELECT COALESCE(MAX(id),0) n FROM papers')['n']
-    total=one('SELECT COUNT(*) n FROM papers WHERE id<=? AND scored=0',(max_id,))['n']
+    eligible=paper_retries.eligible('assess_quality')
+    total=one('SELECT COUNT(*) n FROM papers WHERE id<=? AND scored=0 AND '+eligible,(max_id,))['n']
     concurrency=models.concurrency('quality')
     progress=TaskProgress('assess_quality',[
         ('quality','论文质量评估',total,'篇',models.selected('quality')['model'],concurrency)])
@@ -167,7 +185,7 @@ async def assess_quality():
                     errors.append(type(error).__name__)
                     progress.finish('quality',failed=1,seconds=time.perf_counter()-started,paper=paper)
                     event('task','论文质量评估失败',level='error',job='assess_quality',paper_id=paper['id'],error_type=type(error).__name__)
-        while batch := rows('SELECT id,title,abstract,primary_category,venue,venue_rank FROM papers WHERE id>? AND id<=? AND scored=0 ORDER BY id LIMIT 32',(last_id,max_id)):
+        while batch := rows('SELECT id,title,abstract,primary_category,venue,venue_rank FROM papers WHERE id>? AND id<=? AND scored=0 AND '+eligible+' ORDER BY id LIMIT 32',(last_id,max_id)):
             check_cancelled()
             last_id=batch[-1]['id']
             pending=iter(batch)
