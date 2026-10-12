@@ -2,7 +2,7 @@ from .. import prompts
 from ..llm import runtime as models
 import asyncio
 import json
-from ..db import rows, one, execute, dumps
+from ..db import rows, one, execute, dumps, connect
 from ..config import now
 from ..interest.profile import current
 from ..llm.provider import cloud
@@ -19,9 +19,31 @@ def sse(event,data):
 
 async def chat_events(session_id,user_id,content,paper_id=None):
     from ..agent_skills import invocation
-    with models.model_snapshot(), invocation():
-        async for event in _chat_events(session_id,user_id,content,paper_id):
-            yield event
+    from .chat_history import touch
+    async def heartbeat():
+        while True:
+            await asyncio.sleep(60)
+            await asyncio.to_thread(touch,session_id,user_id)
+    touch(session_id,user_id)
+    lease=asyncio.create_task(heartbeat())
+    try:
+        with models.model_snapshot(), invocation():
+            async for event in _chat_events(session_id,user_id,content,paper_id):
+                yield event
+    except asyncio.CancelledError:
+        raise
+    except Exception as error:
+        yield sse('error',{'message':models.safe_error(error)[:300]})
+    finally:
+        lease.cancel()
+        # Release the session only after the heartbeat has stopped, so a new
+        # reply cannot have its state cleared by the previous reply's cleanup.
+        try:
+            await asyncio.gather(lease,return_exceptions=True)
+            touch(session_id,user_id,active=False)
+        finally:
+            _active_sessions.discard(session_id)
+            _active_tasks.pop(session_id,None)
 
 
 async def _chat_events(session_id,user_id,content,paper_id=None):
@@ -44,25 +66,37 @@ async def _chat_events(session_id,user_id,content,paper_id=None):
         if paper:
             from .references import reference
             system += '\n当前论文上下文：'+dumps({'id':paper_id,'abstract':paper['abstract'],**reference(paper),'reading_card':json.loads(card['card_json']) if card else None})
-    # Complete older turns rather than sending a tool message without its assistant call.
-    history = rows('SELECT role,content FROM chat_messages WHERE session_id=? AND role IN (\'user\',\'assistant\') ORDER BY id DESC LIMIT 30',(session_id,))[::-1]
-    for message in history:
-        if message['role']=='assistant':
-            message['content'] = clean_answer(message['content'])
-    messages = [{'role':'system','content':system}]+history
+    current_id=None
     if content:
-        execute("INSERT INTO chat_messages(session_id,role,content,created_at) VALUES(?,'user',?,?)",(session_id,content,now()))
-        messages.append({'role':'user','content':content})
+        current_id=execute("INSERT INTO chat_messages(session_id,role,content,created_at) VALUES(?,'user',?,?)",(session_id,content,now()))
     final_text = ''
     proposals = []
     skill_events = []
     try:
+        from .context_compression import prepare
+        tools=tool_definitions()
+        history=[]
+        async for kind,value in prepare(session_id,user_id,system,content,tools,current_id=current_id):
+            if kind=='history':history=value
+            else:yield sse(kind,value)
+        messages=[{'role':'system','content':system},*history]
+        if content:messages.append({'role':'user','content':content})
+        current_start=len(messages)-int(bool(content))
         for _ in range(6):
+            from .context_compression import policy, limits, cost
+            compression=policy()
+            if compression.enabled and _ and cost(messages)+cost([{'role':'system','content':dumps(tools)}])>=int(limits(models.selected('chat'),compression.context_window)[0]*compression.threshold):
+                active_turn=messages[current_start:]
+                async for kind,value in prepare(session_id,user_id,system,content,tools,current_id=current_id,extra=active_turn[1:]):
+                    if kind=='history':history=value
+                    else:yield sse(kind,value)
+                messages=[{'role':'system','content':system},*history,*active_turn]
+                current_start=1+len(history)
             text = ''
             reasoning = ''
             answer = AnswerStream()
             calls = {}
-            async for delta in models.stream(messages,tool_definitions()):
+            async for delta in models.stream(messages,tools):
                 reasoning += getattr(delta,'reasoning_content',None) or getattr(delta,'thinking',None) or ''
                 if delta.content:
                     visible = answer.feed(delta.content)
@@ -115,10 +149,12 @@ async def _chat_events(session_id,user_id,content,paper_id=None):
     except Exception as error:
         yield sse('error',{'message':models.safe_error(error)[:300]})
     finally:
-        try:
-            if (final_text or proposals or skill_events) and one('SELECT id FROM chat_sessions WHERE id=? AND user_id=?',(session_id,user_id)):
-                stored=[*proposals,*[{'skill_event':notice} for notice in skill_events]]
-                execute("INSERT INTO chat_messages(session_id,role,content,tool_calls,created_at) VALUES(?,'assistant',?,?,?)",(session_id,final_text,dumps(stored) if stored else None,now()))
-        finally:
-            _active_sessions.discard(session_id)
-            _active_tasks.pop(session_id,None)
+        # The outer chat_events finally always releases activity/task state,
+        # including cancellation or an error while saving this final response.
+        if (final_text or proposals or skill_events) and one('SELECT id FROM chat_sessions WHERE id=? AND user_id=?',(session_id,user_id)):
+            stored=[*proposals,*[{'skill_event':notice} for notice in skill_events]]
+            message_id=execute("INSERT INTO chat_messages(session_id,role,content,tool_calls,created_at) VALUES(?,'assistant',?,?,?)",(session_id,final_text,dumps(stored) if stored else None,now()))
+            if proposals:
+                with connect() as db:
+                    db.executemany('UPDATE pending_tools SET message_id=? WHERE id=? AND user_id=? AND session_id=?',
+                                   [(message_id,p['id'],user_id,session_id) for p in proposals])

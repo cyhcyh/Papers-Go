@@ -108,7 +108,10 @@ def add_watch(user_id,kind,value,db=None):
     def write(conn):
         existing = conn.execute('SELECT id FROM watches WHERE user_id=? AND type=? AND value=? AND active=1',(user_id,kind,value)).fetchone()
         if existing: return {'id':existing['id']}
-        ident = conn.execute('INSERT INTO watches(user_id,type,value,created_at) VALUES(?,?,?,?)',(user_id,kind,value,now())).lastrowid
+        ident=int(conn.execute("UPDATE app_settings SET value=CAST(MAX(CAST(value AS INTEGER),(SELECT COALESCE(MAX(id),0) FROM watches))+1 AS TEXT),updated_at=? WHERE name='watch_id_sequence' RETURNING value",(now(),)).fetchone()['value'])
+        existing=conn.execute('SELECT id FROM watches WHERE user_id=? AND type=? AND value=? AND active=1',(user_id,kind,value)).fetchone()
+        if existing:return {'id':existing['id']}
+        conn.execute('INSERT INTO watches(id,user_id,type,value,created_at) VALUES(?,?,?,?,?)',(ident,user_id,kind,value,now()))
         from ..pipeline.alerts import bind_watch
         bind_watch(conn,dict(conn.execute('SELECT * FROM watches WHERE id=?',(ident,)).fetchone()))
         conn.execute('INSERT INTO audit_log(user_id,action,detail,created_at) VALUES(?,?,?,?)',(user_id,'watch.add',dumps({'id':ident,'type':kind,'value':value}),now()))
@@ -130,7 +133,7 @@ def create_watch(body: Watch,user=Depends(current_user)):
 @router.delete('/watches/{watch_id}')
 def delete_watch(watch_id: int,user=Depends(current_user)):
     with connect() as db:
-        if not db.execute('UPDATE watches SET active=0 WHERE id=? AND user_id=? AND active=1',(watch_id,user['id'])).rowcount:
+        if not db.execute('DELETE FROM watches WHERE id=? AND user_id=? AND active=1',(watch_id,user['id'])).rowcount:
             raise HTTPException(404,'监视项不存在')
         db.execute('INSERT INTO audit_log(user_id,action,detail,created_at) VALUES(?,?,?,?)',(user['id'],'watch.remove',dumps({'id':watch_id}),now()))
     return {'ok':True}

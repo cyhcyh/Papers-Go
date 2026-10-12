@@ -26,3 +26,6 @@
 .aui-root .skill-chat-notice{display:flex;align-items:center;justify-content:space-between;gap:12px}.skill-chat-notice .confirm-label{display:flex;align-items:center;gap:6px;margin:0}.skill-chat-notice .confirm-label svg{flex-shrink:0}.skill-chat-notice a{font-size:12px;white-space:nowrap}
 @media(max-width:600px){.aui-thread-root{height:var(--chat-mobile-height,calc(100dvh - 290px));min-height:300px;border-radius:14px}.aui-thread-body{padding:20px 16px 8px;gap:22px}.aui-thread-footer{padding:8px 12px 12px}.aui-user-message-root{padding-left:30px}.aui-thread-welcome h2{font-size:22px}.aui-composer-action-wrapper>span{font-size:10px}.aui-thread-suggestions button{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.aui-typing span{animation:none}}
+.aui-history-control{display:flex;justify-content:center;padding:4px 0 20px}
+.aui-root .aui-history-control button{font-size:13px;color:var(--muted);background:transparent;border:1px solid var(--border);border-radius:9px;padding:7px 12px}
+.aui-compression-status{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px;padding:0 6px 10px}

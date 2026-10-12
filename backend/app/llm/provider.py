@@ -26,6 +26,8 @@ def completion_options(binding, model, endpoint):
     if binding and binding.get('feature','').startswith('reading_'):
         from .reading_limits import reading_budget
         options['max_tokens']=reading_budget(binding,'L3' if binding['feature']=='reading_l3' else 'L2')[1]
+    if binding and binding.get('feature')=='chat_compression' and binding.get('output_tokens'):
+        options['max_tokens']=binding['output_tokens']
     return options
 
 
@@ -46,7 +48,7 @@ class CloudLLM:
         base_url = binding['base_url'].rstrip('/') + ('/v1' if binding['kind']=='ollama' else '') if binding else cfg.llm_base_url
         reading=binding and binding.get('feature','').startswith('reading_')
         return AsyncOpenAI(base_url=base_url, api_key=key,
-                           timeout=cfg.llm_timeout, max_retries=0 if reading else 2)
+                           timeout=cfg.llm_timeout, max_retries=0 if reading or binding and binding.get('feature')=='chat_compression' else 2)
 
     def model(self, purpose):
         return current_binding()['model'] if current_binding() else getattr(settings(), 'llm_model_' + purpose)

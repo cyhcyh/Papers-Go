@@ -2,6 +2,7 @@ FROM node:22-bookworm-slim AS web
 WORKDIR /web
 COPY frontend/package*.json ./
 RUN npm ci
+COPY VERSION.txt /VERSION.txt
 COPY frontend/ ./
 RUN npm run build
 
@@ -12,6 +13,7 @@ COPY backend/requirements.txt ./backend/requirements.txt
 ARG PIP_INDEX_URL=https://pypi.org/simple
 RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY LICENSE ./LICENSE
+COPY VERSION.txt CHANGELOG ./
 COPY backend/ ./backend/
 COPY --from=web /web/dist ./frontend/dist
 RUN mkdir -p /data

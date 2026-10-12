@@ -78,7 +78,8 @@ def metadata(entry, connection):
     elif base['capability_source']=='api':
         base['note']='该模型不支持关闭思考。' if 'off' not in base['thinking_modes'] else ''
     return {'id':ident,'name':entry.get('display_name') or entry.get('displayName') or ident,**base,
-            'context_window':entry.get('context_window') or entry.get('max_input_tokens'),
+            'context_window':entry.get('context_window') or entry.get('max_input_tokens') or entry.get('context_length'),
+            'output_limit':entry.get('max_output_tokens') or entry.get('output_limit'),
             'priority':entry.get('priority') if isinstance(entry.get('priority'),int) else 100,
             'default_reasoning_effort':entry.get('default_reasoning_level') or entry.get('default_reasoning_effort') or entry.get('defaultReasoningEffort')}
 

@@ -28,7 +28,7 @@ def test_model_settings_permissions_and_key_preservation(client, accounts):
     assert client.get('/api/admin/models').status_code==401
     assert client.get('/api/admin/models',headers=headers(regular)).status_code==403
     config = payload(client,admin)
-    assert len(config['features'])==11 and config['embedding_dim']==4
+    assert len(config['features'])==12 and config['embedding_dim']==4
     config['connections'][1]['api_key']='test-private-key'
     result = client.put('/api/admin/models',json=config,headers=headers(admin))
     assert result.status_code==200 and 'test-private-key' not in result.text

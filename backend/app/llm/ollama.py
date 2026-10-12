@@ -42,6 +42,7 @@ class Ollama:
                     break
         payload = {'model':binding['model'],'messages':native,'stream':True,'think':think,
                    'options':{'temperature':.3,'num_ctx':16384}}
+        if binding.get('context_tokens'):payload['options']['num_ctx']=binding['context_tokens']
         reading=binding.get('feature','').startswith('reading_')
         if reading:payload['options']['num_predict']=binding['output_tokens']
         if json_mode:payload['format']=binding.get('json_schema') or 'json'
@@ -89,6 +90,8 @@ class Ollama:
         if binding and binding.get('feature','').startswith('reading_'):
             from .reading_limits import reading_budget
             options.update(num_ctx=16384,num_predict=reading_budget(binding,'L3' if binding['feature']=='reading_l3' else 'L2')[1])
+        if binding and binding.get('feature')=='chat_compression':
+            options.update(num_ctx=binding['context_tokens'],num_predict=binding['output_tokens'])
         if qwen3 and think is False:
             # The installed Qwen3 template opens <think> even with think=False.
             prompt += '\n/no_think'
@@ -98,7 +101,10 @@ class Ollama:
                 'stream': False, 'format': (binding.get('json_schema') if binding else None) or ('json' if json_mode else ''),
                 'options': options, 'think': think})
             response.raise_for_status()
-            content = response.json()['message']['content']
+            result = response.json()
+            if binding and binding.get('feature')=='chat_compression' and result.get('done_reason')=='length':
+                raise ValueError('压缩摘要达到模型输出上限，保留已有摘要')
+            content = result['message']['content']
             content = clean_answer(content)
             return json.loads(content) if json_mode else content
 

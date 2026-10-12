@@ -1,6 +1,6 @@
 import json
 import asyncio
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from ..auth import current_user
@@ -20,8 +20,9 @@ def owned_session(session_id,user_id):
 
 
 @router.get('/sessions')
-def sessions(user=Depends(current_user)):
-    return rows('SELECT * FROM chat_sessions WHERE user_id=? ORDER BY id DESC',(user['id'],))
+def sessions(limit:int=Query(50,ge=1,le=100),before:int|None=Query(None,ge=1),user=Depends(current_user)):
+    return rows('SELECT id,title,created_at FROM chat_sessions WHERE user_id=?'+(' AND id<?' if before else '')+' ORDER BY id DESC LIMIT ?',
+                (user['id'],before,limit) if before else (user['id'],limit))
 
 
 class Session(BaseModel):
@@ -30,20 +31,38 @@ class Session(BaseModel):
 
 @router.post('/sessions')
 def new_session(body: Session,user=Depends(current_user)):
-    ident = execute('INSERT INTO chat_sessions(user_id,title,created_at) VALUES(?,?,?)',(user['id'],body.title,now()))
+    from ..agent.chat_history import EMPTY_LIMIT
+    with connect() as db:
+        db.execute('BEGIN IMMEDIATE')
+        count=db.execute('SELECT COUNT(*) FROM chat_sessions s WHERE user_id=? AND NOT EXISTS(SELECT 1 FROM chat_messages m WHERE m.session_id=s.id)',(user['id'],)).fetchone()[0]
+        if count>=EMPTY_LIMIT:raise HTTPException(409,'空会话已达上限，请先删除不需要的会话')
+        ident=db.execute('INSERT INTO chat_sessions(user_id,title,created_at) VALUES(?,?,?)',(user['id'],body.title,now())).lastrowid
     return {'id':ident,'title':body.title}
 
 
 @router.get('/sessions/{session_id}/messages')
-def messages(session_id: int,user=Depends(current_user)):
+def messages(session_id: int,limit:int=Query(50,ge=1,le=100),before:int|None=Query(None,ge=1),user=Depends(current_user)):
     owned_session(session_id,user['id'])
-    items = rows('SELECT * FROM chat_messages WHERE session_id=? ORDER BY id',(session_id,))
-    pending = {p['id']:p for p in rows('SELECT * FROM pending_tools WHERE session_id=? AND user_id=?',(session_id,user['id']))}
+    items = rows("SELECT * FROM chat_messages WHERE session_id=? AND role!='tool'"+(' AND id<?' if before else '')+' ORDER BY id DESC LIMIT ?',
+                 (session_id,before,limit) if before else (session_id,limit))[::-1]
+    identifiers=[]
+    for item in items:
+        if item['role']=='assistant':identifiers.extend(p['id'] for p in json.loads(item['tool_calls'] or '[]') if 'id' in p and 'skill_event' not in p)
+    from ..db import dumps
+    pending = {p['id']:p for p in rows('SELECT id,status,created_at FROM pending_tools WHERE session_id=? AND user_id=? AND id IN (SELECT value FROM json_each(?))',(session_id,user['id'],dumps(identifiers)))} if identifiers else {}
+    from datetime import datetime,timedelta
+    expiry=(datetime.fromisoformat(now())-timedelta(days=1)).isoformat()
     for message in items:
         if message['role']=='assistant':
             message['content'] = clean_answer(message['content'])
         proposals = json.loads(message['tool_calls'] or '[]') if message['role']=='assistant' else []
-        message['proposals']=[{**p,'status':pending.get(p['id'],{}).get('status','rejected')} for p in proposals if 'skill_event' not in p]
+        message['proposals']=[]
+        for p in proposals:
+            if 'skill_event' in p:continue
+            record=pending.get(p['id'])
+            status=record['status'] if record else p.get('status','expired')
+            if status=='pending' and (not record or record['created_at']<expiry):status='expired'
+            message['proposals'].append({**p,'status':status})
         message['skill_events']=[p['skill_event'] for p in proposals if 'skill_event' in p]
     return [m for m in items if m['role']!='tool']
 

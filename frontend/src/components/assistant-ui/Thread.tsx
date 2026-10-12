@@ -4,7 +4,7 @@
 // Math rendering and administrator-confirmed research actions use app slots.
 import {ThreadPrimitive,MessagePrimitive,ComposerPrimitive,ActionBarPrimitive,useAui,type TextMessagePartProps} from '@assistant-ui/react'
 import {ArrowUp,ArrowDown,ArrowRight,Square,Copy,FileText,ChartNoAxesCombined,Sparkles,CircleHelp} from 'lucide-react'
-import type {ReactNode} from 'react'
+import {useRef,type ReactNode} from 'react'
 import {ChatContent} from '../ChatContent'
 import {ConversationGraphic} from '../PageContentUI'
 import type {Proposal,SkillEvent} from '../../types'
@@ -21,11 +21,14 @@ function CopyReply(){
  return <button type="button" className="aui-icon-button" aria-label="复制回复" title="复制回复" onClick={copy}><Copy size={16}/></button>
 }
 
-export function ResearchThread({empty,running,error,context,proposal,skillEvent}:{empty:boolean;running:boolean;error:string;context:ReactNode;proposal:(p:Proposal)=>ReactNode;skillEvent?:(event:SkillEvent)=>ReactNode}){
+export function ResearchThread({empty,running,error,context,proposal,skillEvent,compressing=false,hasHistory=false,loadingHistory=false,onHistory}:{empty:boolean;running:boolean;error:string;context:ReactNode;proposal:(p:Proposal)=>ReactNode;skillEvent?:(event:SkillEvent)=>ReactNode;compressing?:boolean;hasHistory?:boolean;loadingHistory?:boolean;onHistory?:()=>Promise<boolean>}){
+ const viewport=useRef<HTMLDivElement>(null)
+ const loadHistory=async()=>{const node=viewport.current,top=node?.scrollTop||0,height=node?.scrollHeight||0;if(!await onHistory?.())return;requestAnimationFrame(()=>requestAnimationFrame(()=>{if(node&&node===viewport.current)node.scrollTop=top+node.scrollHeight-height}))}
  return <ThreadPrimitive.Root className="aui-root aui-thread-root">
   {context}
-  <ThreadPrimitive.Viewport className="aui-thread-viewport">
+  <ThreadPrimitive.Viewport ref={viewport} className="aui-thread-viewport">
    <div className={'aui-thread-body'+(empty?' aui-thread-empty':'')}>
+    {hasHistory&&<div className="aui-history-control"><button type="button" disabled={running||loadingHistory} onClick={()=>void loadHistory()}>{loadingHistory?'正在加载…':'加载更早的消息'}</button></div>}
     {empty&&<div className="aui-thread-welcome"><ConversationGraphic/><h2>想从哪里开始？</h2><p>追问论文、探索方向，或调整您的研究兴趣。</p><div className="aui-thread-suggestions">{['帮我找近期智能体记忆论文','把评测方法加入近期关注','你能做什么？'].map((text,index)=><ThreadPrimitive.Suggestion key={text} prompt={text} send={false}>{index===0?<FileText size={17}/>:index===1?<ChartNoAxesCombined size={17}/>:<CircleHelp size={17}/>}<span>{text}</span><ArrowRight size={15}/></ThreadPrimitive.Suggestion>)}</div></div>}
     <ThreadPrimitive.Messages>{({message})=>{
      // The external-store adapter updates after React commits. Read both text
@@ -44,6 +47,7 @@ export function ResearchThread({empty,running,error,context,proposal,skillEvent}
    </div>
   </ThreadPrimitive.Viewport>
   <div className="aui-thread-footer"><ThreadPrimitive.ScrollToBottom className="aui-scroll-to-bottom aui-icon-button" aria-label="滚动到最新回复"><ArrowDown size={17}/></ThreadPrimitive.ScrollToBottom>
+   {compressing&&<div className="aui-compression-status" role="status"><Sparkles size={15}/>正在压缩上下文…</div>}
    {error&&<div className="aui-message-error" role="alert">{error}</div>}
    <ComposerPrimitive.Root className="aui-composer-root"><div className="aui-composer-shell"><ComposerPrimitive.Input className="aui-composer-input" rows={1} maxLength={6000} placeholder="聊聊您的研究，或追问这篇论文…" aria-label="对话消息" enterKeyHint="send"/><div className="aui-composer-action-wrapper"><span>Enter 发送 · Shift + Enter 换行</span>{running?<ComposerPrimitive.Cancel className="aui-composer-cancel" aria-label="停止回复" title="停止回复"><Square size={14} fill="currentColor"/></ComposerPrimitive.Cancel>:<ComposerPrimitive.Send className="aui-composer-send" aria-label="发送消息" title="发送消息"><ArrowUp size={18}/></ComposerPrimitive.Send>}</div></div></ComposerPrimitive.Root>
   </div>

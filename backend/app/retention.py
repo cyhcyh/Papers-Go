@@ -1,10 +1,10 @@
 """Bounded background retention. Business data and active work are never evicted."""
 import asyncio
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from .config import now
-from .db import connect
+from .db import connect, dumps
 from .background_load import yield_to_web
 from . import usage_history
 
@@ -19,9 +19,19 @@ TREND_CACHE_DAYS, TREND_CACHE_LIMIT = 30, 1_000
 RESPONSE_CACHE_LIMIT = 1_000
 RETIRED_SOURCE_DAYS = 365
 ORPHAN_CACHE_DAYS = 365
+BEHAVIOR_DAYS, STATS_DAYS = 90, 365
+CONFIRMATION_DAYS = 30
+NOTIFICATION_READ_DAYS, NOTIFICATION_UNREAD_DAYS, ALERT_DAYS = 90, 180, 30
 
 
 def initialize(db):
+    # Physical watch removal must not let SQLite reuse an ID already present in
+    # notification deduplication keys. One counter replaces retaining old rows.
+    db.execute("INSERT OR IGNORE INTO app_settings(name,value,updated_at) SELECT 'watch_id_sequence',CAST(COALESCE(MAX(id),0) AS TEXT),? FROM watches",(now(),))
+    from .agent.chat_history import initialize as initialize_chat_history
+    initialize_chat_history(db)
+    if 'archived' not in {r['name'] for r in db.execute('PRAGMA table_info(daily_metrics)')}:
+        db.execute('ALTER TABLE daily_metrics ADD COLUMN archived INTEGER NOT NULL DEFAULT 0')
     db.executescript(usage_history.SCHEMA)
     db.executescript('''
     CREATE TABLE IF NOT EXISTS skill_bundle_cleanup (
@@ -41,6 +51,9 @@ def initialize(db):
     CREATE INDEX IF NOT EXISTS idx_watch_author ON watches(author_id) WHERE active=1 AND type='author';
     CREATE INDEX IF NOT EXISTS idx_watch_author_name ON watches(value COLLATE NOCASE) WHERE active=1 AND type='author';
     CREATE INDEX IF NOT EXISTS idx_repo_cache_date ON community_repos(checked_at,repo);
+    CREATE INDEX IF NOT EXISTS idx_notifications_retention ON notifications(read,created_at,id);
+    CREATE INDEX IF NOT EXISTS idx_daily_metrics_date ON daily_metrics(date,user_id);
+    CREATE INDEX IF NOT EXISTS idx_topic_stats_date ON topic_daily_stats(date,topic_id);
     ''')
 
 
@@ -179,7 +192,46 @@ def repository_cache(stamp):
     return BATCH_SIZE if len(batch)==50 else removed
 
 
+def confirmations(stamp):
+    from .agent.chat_history import proposal_status
+    with connect() as db:
+        db.execute('BEGIN IMMEDIATE')
+        expired=db.execute("SELECT * FROM pending_tools WHERE status='pending' AND created_at<? ORDER BY created_at LIMIT 20",(before(stamp,1),)).fetchall()
+        for item in expired:
+            db.execute("UPDATE pending_tools SET status='expired' WHERE id=?",(item['id'],))
+            proposal_status(db,item['session_id'],item['id'],'expired',item['message_id'])
+        old=db.execute('SELECT * FROM pending_tools WHERE created_at<? ORDER BY created_at LIMIT 20',(before(stamp,CONFIRMATION_DAYS),)).fetchall()
+        for item in old:
+            proposal_status(db,item['session_id'],item['id'],'expired' if item['status']=='pending' else item['status'],item['message_id'])
+            db.execute('DELETE FROM pending_tools WHERE id=?',(item['id'],))
+    return BATCH_SIZE if len(expired)==20 or len(old)==20 else len(expired)+len(old)
+
+
+def interactions(stamp):
+    from zoneinfo import ZoneInfo
+    from .config import settings
+    from .pipeline.metrics import aggregate_day
+    zone=ZoneInfo(settings().tz)
+    day=datetime.fromisoformat(stamp).astimezone(zone).date()
+    cutoff=datetime.combine(day-timedelta(days=BEHAVIOR_DAYS),datetime.min.time(),zone).astimezone(timezone.utc).isoformat()
+    stats_cutoff=day-timedelta(days=STATS_DAYS)
+    with connect() as db:
+        db.execute('BEGIN IMMEDIATE')
+        batch=db.execute('SELECT id,user_id,created_at FROM interactions WHERE created_at<? ORDER BY created_at,id LIMIT ?',(cutoff,BATCH_SIZE)).fetchall()
+        dates={(r['user_id'],datetime.fromisoformat(r['created_at']).astimezone(zone).date()) for r in batch}
+        for user_id,event_day in dates:
+            frozen=db.execute('SELECT archived FROM daily_metrics WHERE date=? AND user_id=?',(event_day.isoformat(),user_id)).fetchone()
+            if event_day>=stats_cutoff and not (frozen and frozen['archived']):aggregate_day(db,user_id,event_day,archived=True)
+        identifiers=dumps([r['id'] for r in batch])
+        # Undo rows reference the original event. They are no longer actionable
+        # once the original event expires, and must be removed first.
+        db.execute('DELETE FROM interactions WHERE target_id IN (SELECT value FROM json_each(?))',(identifiers,))
+        db.execute('DELETE FROM interactions WHERE id IN (SELECT value FROM json_each(?))',(identifiers,))
+    return len(batch)
+
+
 def phases(stamp):
+    from .agent.chat_history import maintain as maintain_chat
     return [
         lambda: skill_versions(stamp), lambda: skill_files(stamp), lambda: redo_runs(stamp),
         lambda: prune('pipeline_commands','id','created_at',before(stamp,COMMAND_DAYS),COMMAND_LIMIT,
@@ -193,6 +245,12 @@ def phases(stamp):
         lambda: prune('trend_reference_cache','scope_key','fetched_at',before(stamp,TREND_CACHE_DAYS),TREND_CACHE_LIMIT),
         lambda: prune('llm_cache','key','expires_at',int(datetime.fromisoformat(stamp).timestamp()),RESPONSE_CACHE_LIMIT),
         lambda: author_cache(stamp), lambda: repository_cache(stamp),
+        lambda: confirmations(stamp), lambda: maintain_chat(stamp,BATCH_SIZE), lambda: interactions(stamp),
+        lambda: prune('watches','id','created_at',stamp,where='active=0'),
+        lambda: prune('notifications','id','created_at',before(stamp,NOTIFICATION_READ_DAYS),where='read=1'),
+        lambda: prune('notifications','id','created_at',before(stamp,NOTIFICATION_UNREAD_DAYS),where='read=0'),
+        lambda: prune('daily_metrics','rowid','date',before(stamp,STATS_DAYS)[:10]),
+        lambda: prune('topic_daily_stats','rowid','date',before(stamp,STATS_DAYS)[:10]),
     ]
 
 

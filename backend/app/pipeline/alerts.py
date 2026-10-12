@@ -158,6 +158,10 @@ def _author_hit(watch, paper):
 
 def _required_materials(db,identifiers,cache,users):
     if not users:return []
+    from ..retention import ALERT_DAYS
+    cutoff=(date.fromisoformat(today())-timedelta(days=ALERT_DAYS)).isoformat()
+    identifiers=[r['id'] for r in db.execute('SELECT id FROM papers WHERE id IN (SELECT value FROM json_each(?)) AND ingested_date>=?',(dumps(identifiers),cutoff))]
+    if not identifiers:return []
     # Baseline comparisons and benchmark watches require an existing reading result.
     # Do not load thousands of abstracts/vectors when none of these users need them.
     if not any(u['vector'] or any(w['type']!='benchmark' for w in u['watches']) for u in users):
@@ -187,6 +191,8 @@ def _notifications(papers, users, stop):
 
 
 def _write_notifications(proposals,stop):
+    from ..retention import ALERT_DAYS
+    cutoff=(date.fromisoformat(today())-timedelta(days=ALERT_DAYS)).isoformat()
     batch=[];added=0
     def flush():
         if stop.is_set():return 0
@@ -197,11 +203,11 @@ def _write_notifications(proposals,stop):
                 if stop.is_set():break
                 count+=db.execute('''INSERT OR IGNORE INTO notifications(user_id,type,title,body,paper_id,dedupe_key,created_at)
                     SELECT u.id,?,?,?,?,?,? FROM users u JOIN papers p ON p.id=?
-                    WHERE u.id=? AND u.disabled=0 AND u.notifications_enabled=1 AND u.auth_epoch=?
+                    WHERE u.id=? AND p.ingested_date>=? AND u.disabled=0 AND u.notifications_enabled=1 AND u.auth_epoch=?
                     AND COALESCE((SELECT revision FROM alert_user_state WHERE user_id=u.id),0)=?
                     AND COALESCE((SELECT revision FROM alert_paper_state WHERE paper_id=p.id),0)=?
                     AND NOT EXISTS(SELECT 1 FROM notifications WHERE user_id=u.id AND dedupe_key=?)''',
-                    (kind,title,body,paper['id'],key,now(),paper['id'],user['id'],user['auth_epoch'],user['alert_revision'],paper['alert_revision'],key)).rowcount
+                    (kind,title,body,paper['id'],key,now(),paper['id'],user['id'],cutoff,user['auth_epoch'],user['alert_revision'],paper['alert_revision'],key)).rowcount
         return count
     for proposal in proposals:
         batch.append(proposal)

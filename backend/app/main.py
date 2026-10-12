@@ -21,6 +21,7 @@ from .api.model_config import router as model_router
 from .api.source_categories import router as source_category_router
 from .api.topic_proposals import router as proposal_router
 from .api.site import router as site_router
+from .api.versions import router as version_router
 from .api.prompts import router as prompt_router
 from .api.skills import router as skill_router, personal_router as personal_skill_router
 from . import site_settings
@@ -93,7 +94,8 @@ async def lifespan(app):
     close_vector_store()
 
 
-app = FastAPI(title='刷论文',version='1.0.0',lifespan=lifespan)
+from .versioning import CURRENT_VERSION
+app = FastAPI(title='刷论文',version=CURRENT_VERSION,lifespan=lifespan)
 from .background_load import WebLoadMiddleware
 app.add_middleware(WebLoadMiddleware)
 
@@ -123,7 +125,7 @@ async def request_logs(request, call_next):
 @app.exception_handler(SecretStorageError)
 async def secret_storage_error(request, error):
     return JSONResponse({'detail':str(error)}, status_code=503)
-for router in [auth_router,content_router,profile_router,chat_router,admin_router,model_router,source_category_router,proposal_router,site_router,prompt_router,skill_router,personal_skill_router]:
+for router in [auth_router,content_router,profile_router,chat_router,admin_router,model_router,source_category_router,proposal_router,site_router,version_router,prompt_router,skill_router,personal_skill_router]:
     app.include_router(router)
 
 

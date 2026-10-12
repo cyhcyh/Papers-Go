@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 import xml.etree.ElementTree as ET
 from ..auth import admin_user
 from ..db import rows,connect
-from ..source_catalog import SourceInput, ArxivBatchInput, add_arxiv_sources, official_categories, venue_catalog, registry, save_source, validate_source,invalidate
+from ..source_catalog import SourceInput, ArxivBatchInput, VenueBatchInput, add_arxiv_sources, add_venue_sources, official_categories, venue_catalog, registry, save_source, validate_source,invalidate
 from ..pipeline.fetch import HEADERS, parse_conference_feed
 from ..logs import event
 from pydantic import BaseModel, Field
@@ -48,6 +48,13 @@ def create_arxiv_many(body:ArxivBatchInput,admin=Depends(admin_user)):
     result=add_arxiv_sources(body)
     event('admin','批量新增 arXiv 分类',user_id=admin['id'],source_keys=result['created'],skipped_keys=result['skipped'],
           fetch_enabled=body.fetch_enabled,guest_default=body.guest_default)
+    return result
+
+
+@router.post('/venue/batch')
+def create_venue_many(body:VenueBatchInput,admin=Depends(admin_user)):
+    result=add_venue_sources(body)
+    event('admin','批量新增会议来源',user_id=admin['id'],source_keys=result['created'],skipped_keys=result['skipped'])
     return result
 
 

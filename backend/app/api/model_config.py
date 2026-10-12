@@ -14,6 +14,7 @@ from ..llm.secrets import encrypt_configuration, decrypt_configuration
 from ..llm.provider import cloud
 from ..llm.controls import discover
 from ..llm import catalog,vector_rebuild,codex,codex_updates
+from ..agent.context_compression import CompressionSettings
 import uuid
 
 router = APIRouter(prefix='/api/admin/models', dependencies=[Depends(admin_user)])
@@ -79,6 +80,7 @@ class Configuration(BaseModel):
     reading_local_concurrency: int = Field(1,ge=1,le=4)
     embedding_cloud_concurrency: int = Field(4,ge=1,le=16)
     embedding_local_concurrency: int = Field(1,ge=1,le=4)
+    chat_compression: CompressionSettings | None = None
 
 
 def private_connection(body, previous):
@@ -102,6 +104,10 @@ def get_configuration():
 async def save_configuration(body: Configuration):
     pending=vector_rebuild.pending()
     previous = runtime.configuration()
+    # Older clients/configurations have no compression route. Preserve any
+    # existing assignment while allowing a new, explicitly unassigned route.
+    if 'chat_compression' not in body.routes:
+        body.routes['chat_compression']=Route.model_validate(previous.get('routes',{}).get('chat_compression',{'primary':{'connection_id':'','model':''}}))
     connections = [private_connection(c, previous) for c in body.connections]
     if sum(not c.get('embedding_retained') for c in connections)>20:
         raise HTTPException(400,'最多可配置 20 个模型连接')
@@ -121,7 +127,8 @@ async def save_configuration(body: Configuration):
     config = {'connections': connections, 'routes': {key:r.model_dump() for key,r in body.routes.items()}, 'embedding_dim': body.embedding_dim, 'brief_cloud_concurrency':body.brief_cloud_concurrency,
               'quality_cloud_concurrency':body.quality_cloud_concurrency,'classify_cloud_concurrency':body.classify_cloud_concurrency,
               'reading_cloud_concurrency':body.reading_cloud_concurrency,'reading_local_concurrency':body.reading_local_concurrency,
-              'embedding_cloud_concurrency':body.embedding_cloud_concurrency,'embedding_local_concurrency':body.embedding_local_concurrency}
+              'embedding_cloud_concurrency':body.embedding_cloud_concurrency,'embedding_local_concurrency':body.embedding_local_concurrency,
+              'chat_compression':body.chat_compression.model_dump() if body.chat_compression else previous.get('chat_compression',CompressionSettings().model_dump())}
     vector_rebuild.remove_unused_retained(config)
     discovered = {}
     for feature, route in config['routes'].items():
@@ -154,6 +161,9 @@ async def save_configuration(body: Configuration):
             if choice['reasoning_effort']!='auto' and (choice['thinking']=='off' or choice['reasoning_effort'] not in caps['reasoning_efforts']):
                 raise HTTPException(400,f'{runtime.FEATURES[feature][0]}所选模型不支持该推理强度')
             choice['control_capabilities'] = caps
+    from ..agent.context_compression import configuration_issue as compression_issue
+    issue=compression_issue(config)
+    if issue:raise HTTPException(400,issue)
     identity_changed = runtime.embedding_identity(previous)!=runtime.embedding_identity(config)
     has_vectors=bool(one('SELECT 1 FROM papers WHERE embedding IS NOT NULL LIMIT 1') or one('SELECT 1 FROM interest_profile WHERE embedding IS NOT NULL LIMIT 1'))
     if identity_changed and runtime.embedding_identity(config) is None and has_vectors:

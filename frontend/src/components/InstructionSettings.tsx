@@ -10,7 +10,7 @@ import {ChatContent} from './ChatContent'
 import '../instruction-settings.css'
 
 type Instruction={id:string;name:string;description:string;text:string;default:string;customized:boolean;bindings?:string[]}
-const groups=[{name:'论文处理',ids:['brief','classify','topic_proposal']},{name:'用户与趋势',ids:['interest_init','reflect','trend_report','trend_rewrite']},{name:'研究助手',ids:['chat','reading_card','reading_section','why_you_care']},{name:'Skills 使用与工具',ids:['skills_runtime','tool_list_skills','tool_get_skill','tool_activate_skill','tool_read_skill_resource','tool_create_skill','tool_update_skill','tool_set_skill_enabled','tool_propose_shared_skill']},{name:'工具与评估',ids:['audit','tool_update_interest','tool_add_watch','tool_search_papers','tool_read_now','tool_show_profile','codex_connection_test']}]
+const groups=[{name:'论文处理',ids:['brief','classify','topic_proposal']},{name:'用户与趋势',ids:['interest_init','reflect','trend_report','trend_rewrite']},{name:'研究助手',ids:['chat','chat_compression','reading_card','reading_section','why_you_care']},{name:'Skills 使用与工具',ids:['skills_runtime','tool_list_skills','tool_get_skill','tool_activate_skill','tool_read_skill_resource','tool_create_skill','tool_update_skill','tool_set_skill_enabled','tool_propose_shared_skill']},{name:'工具与评估',ids:['audit','tool_update_interest','tool_add_watch','tool_search_papers','tool_read_now','tool_show_profile','codex_connection_test']}]
 
 export function InstructionSettings({kind='prompt'}:{kind?:'prompt'|'skill'}){
  const skill=kind==='skill',label=skill?'Skill':'Prompt',path=skill?'/admin/skills':'/admin/prompts'

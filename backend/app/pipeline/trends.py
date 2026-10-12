@@ -8,9 +8,14 @@ from .direction_trends import trend_summary, ensure_direction_trend
 
 
 def trend_stats():
+    from ..retention import STATS_DAYS
+    cutoff=(date.fromisoformat(today())-timedelta(days=STATS_DAYS)).isoformat()
     for item in rows('SELECT * FROM trend_dirty ORDER BY date,topic_id LIMIT 500'):
         with connect() as db:
             db.execute('BEGIN IMMEDIATE')
+            if item['date']<cutoff:
+                db.execute('DELETE FROM trend_dirty WHERE date=? AND topic_id=? AND revision=?',(item['date'],item['topic_id'],item['revision']))
+                continue
             result=db.execute('SELECT COUNT(*) n,AVG(CASE WHEN p.scored=1 THEN p.quality_score END) quality FROM papers p JOIN paper_topics pt ON pt.paper_id=p.id WHERE pt.topic_id=? AND COALESCE(p.published,p.ingested_date)=?',(item['topic_id'],item['date'])).fetchone()
             if result['n']:
                 db.execute('INSERT INTO topic_daily_stats VALUES(?,?,?,?) ON CONFLICT(date,topic_id) DO UPDATE SET paper_count=excluded.paper_count,avg_quality=excluded.avg_quality',(item['date'],item['topic_id'],result['n'],result['quality']))

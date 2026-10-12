@@ -106,6 +106,10 @@ async def confirm_tool(ident,user_id,approve):
     if not pending: raise HTTPException(404,'确认操作不存在')
     if pending['status']!='pending': raise HTTPException(409,'该操作已处理')
     if (datetime.now(timezone.utc)-datetime.fromisoformat(pending['created_at'])).total_seconds()>86400:
+        from .chat_history import proposal_status
+        with connect() as db:
+            db.execute("UPDATE pending_tools SET status='expired' WHERE id=? AND user_id=? AND status='pending'",(ident,user_id))
+            proposal_status(db,pending['session_id'],ident,'expired',pending.get('message_id'))
         raise HTTPException(409,'确认操作已过期，请重新提出')
     args = json.loads(pending['arguments'])
     vector = await profile_embedding(args['patch']) if approve and pending['name']=='update_interest' else None
@@ -113,6 +117,12 @@ async def confirm_tool(ident,user_id,approve):
         db.execute('BEGIN IMMEDIATE')
         item = db.execute("SELECT * FROM pending_tools WHERE id=? AND user_id=? AND status='pending'",(ident,user_id)).fetchone()
         if not item: raise HTTPException(409,'该操作已处理')
+        if (datetime.now(timezone.utc)-datetime.fromisoformat(item['created_at'])).total_seconds()>86400:
+            from .chat_history import proposal_status
+            db.execute("UPDATE pending_tools SET status='expired' WHERE id=?",(ident,))
+            proposal_status(db,item['session_id'],ident,'expired',item['message_id'])
+            db.commit()
+            raise HTTPException(409,'确认操作已过期，请重新提出')
         if approve:
             if item['name']=='update_interest':
                 profile = db.execute('SELECT * FROM interest_profile WHERE user_id=? ORDER BY version DESC LIMIT 1',(user_id,)).fetchone()
@@ -130,6 +140,8 @@ async def confirm_tool(ident,user_id,approve):
             result = {'rejected':True}
         status = 'confirmed' if approve else 'rejected'
         db.execute('UPDATE pending_tools SET status=? WHERE id=?',(status,ident))
+        from .chat_history import proposal_status
+        proposal_status(db,item['session_id'],ident,status,item['message_id'])
         db.execute("INSERT INTO chat_messages(session_id,role,content,created_at) VALUES(?,'assistant',?,?)",(item['session_id'],'已确认并应用。' if approve else '已取消这项修改。',now()))
     return {'status':status,**result}
 

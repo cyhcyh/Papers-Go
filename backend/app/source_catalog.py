@@ -15,26 +15,26 @@ from .disciplines import Discipline, LABELS
 DEFAULT_ARXIV=[('cs.AI','人工智能'),('cs.LG','机器学习'),('cs.CL','自然语言处理'),('cs.CV','计算机视觉'),('cs.MA','多智能体'),('cs.NE','神经与进化计算'),('cs.RO','机器人'),('stat.ML','统计机器学习'),('math.CO','组合数学')]
 DEFAULT_VENUES=['ICML','AAAI','NeurIPS','ICLR']
 ADDITIONAL_AI_VENUES=['ACL','COLM','COLT','CoRL','CVPR','ECCV','EMNLP','ICCV','IJCAI','INTERSPEECH','IWSLT','MICCAI','MLSYS','NAACL','UAI']
-VENUE_NAMES={
-    'ICML':'International Conference on Machine Learning',
-    'AAAI':'AAAI Conference on Artificial Intelligence',
-    'NeurIPS':'Conference on Neural Information Processing Systems',
-    'ICLR':'International Conference on Learning Representations',
-    'ACL':'Annual Meeting of the Association for Computational Linguistics',
-    'COLM':'Conference on Language Modeling',
-    'COLT':'Conference on Learning Theory',
-    'CoRL':'Conference on Robot Learning',
-    'CVPR':'Conference on Computer Vision and Pattern Recognition',
-    'ECCV':'European Conference on Computer Vision',
-    'EMNLP':'Conference on Empirical Methods in Natural Language Processing',
-    'ICCV':'International Conference on Computer Vision',
-    'IJCAI':'International Joint Conference on Artificial Intelligence',
-    'INTERSPEECH':'Conference of the International Speech Communication Association',
-    'IWSLT':'International Conference on Spoken Language Translation',
-    'MICCAI':'Medical Image Computing and Computer Assisted Intervention',
-    'MLSYS':'Conference on Machine Learning and Systems',
-    'NAACL':'Conference of the North American Chapter of the Association for Computational Linguistics',
-    'UAI':'Conference on Uncertainty in Artificial Intelligence',
+VENUE_CATALOG={
+    'ICML':{'label':'International Conference on Machine Learning','discipline':'Computer Science'},
+    'AAAI':{'label':'AAAI Conference on Artificial Intelligence','discipline':'Computer Science'},
+    'NeurIPS':{'label':'Conference on Neural Information Processing Systems','discipline':'Computer Science'},
+    'ICLR':{'label':'International Conference on Learning Representations','discipline':'Computer Science'},
+    'ACL':{'label':'Annual Meeting of the Association for Computational Linguistics','discipline':'Computer Science'},
+    'COLM':{'label':'Conference on Language Modeling','discipline':'Computer Science'},
+    'COLT':{'label':'Conference on Learning Theory','discipline':'Computer Science'},
+    'CoRL':{'label':'Conference on Robot Learning','discipline':'Computer Science'},
+    'CVPR':{'label':'Conference on Computer Vision and Pattern Recognition','discipline':'Computer Science'},
+    'ECCV':{'label':'European Conference on Computer Vision','discipline':'Computer Science'},
+    'EMNLP':{'label':'Conference on Empirical Methods in Natural Language Processing','discipline':'Computer Science'},
+    'ICCV':{'label':'International Conference on Computer Vision','discipline':'Computer Science'},
+    'IJCAI':{'label':'International Joint Conference on Artificial Intelligence','discipline':'Computer Science'},
+    'INTERSPEECH':{'label':'Conference of the International Speech Communication Association','discipline':'Computer Science'},
+    'IWSLT':{'label':'International Conference on Spoken Language Translation','discipline':'Computer Science'},
+    'MICCAI':{'label':'Medical Image Computing and Computer Assisted Intervention','discipline':'Computer Science'},
+    'MLSYS':{'label':'Conference on Machine Learning and Systems','discipline':'Computer Science'},
+    'NAACL':{'label':'Conference of the North American Chapter of the Association for Computational Linguistics','discipline':'Computer Science'},
+    'UAI':{'label':'Conference on Uncertainty in Artificial Intelligence','discipline':'Computer Science'},
 }
 _cache={};_lock=threading.Lock()
 
@@ -45,7 +45,7 @@ def official_categories():
 
 
 def venue_catalog():
-    return [{'code':code,'label':VENUE_NAMES[code]} for code in DEFAULT_VENUES+ADDITIONAL_AI_VENUES]
+    return [{'code':code,**entry} for code,entry in VENUE_CATALOG.items()]
 
 
 def _add_ai_venues(db):
@@ -134,6 +134,49 @@ class ArxivBatchInput(BaseModel):
     sort_order: int = Field(100,ge=0,le=10000)
 
 
+class VenueBatchItem(BaseModel):
+    code: str = Field(min_length=2,max_length=40,pattern=r'^[A-Za-z][A-Za-z0-9._-]+$')
+    label: str | None = Field(None,min_length=1,max_length=100)
+    discipline: Discipline | None = None
+    fetch_enabled: bool = True
+    guest_default: bool = True
+    sort_order: int = Field(100,ge=0,le=10000)
+
+
+class VenueBatchInput(BaseModel):
+    venues: list[VenueBatchItem] = Field(min_length=1)
+
+
+def add_venue_sources(body: VenueBatchInput):
+    catalog={entry['code'].casefold():entry for entry in venue_catalog()}
+    selected={}
+    for item in body.venues:
+        entry=catalog.get(item.code.casefold())
+        if not entry:raise HTTPException(400,'请选择目录中的会议')
+        code=entry['code']
+        if code in selected:continue
+        selected[code]=validate_source(SourceInput(kind='venue',**{
+            **item.model_dump(),'code':code,'label':item.label or code,
+            'discipline':item.discipline or entry['discipline'],
+        }))
+    created,skipped=[],[]
+    with connect() as db:
+        db.execute('BEGIN IMMEDIATE')
+        deleting={row[0].casefold() for row in db.execute('SELECT key FROM source_deletion_sources')}
+        if any(data['key'].casefold() in deleting for data in selected.values()):
+            raise HTTPException(409,'所选会议正在后台删除，暂时不能重新添加')
+        existing={row[0].casefold() for row in db.execute('SELECT key FROM source_categories')}
+        for data in selected.values():
+            key=data['key']
+            if key.casefold() in existing:
+                skipped.append(key);continue
+            db.execute('INSERT INTO source_categories(key,kind,code,label,enabled,fetch_enabled,guest_default,sort_order,feed_url,discipline,created_at) VALUES(?,?,?,?,1,?,?,?,?,?,?)',
+                       (key,'venue',data['code'],data['label'],int(data['fetch_enabled']),int(data['guest_default']),data['sort_order'],data['feed_url'],data['discipline'],now()))
+            created.append(key)
+    invalidate()
+    return {'created':created,'skipped':skipped}
+
+
 def add_arxiv_sources(body: ArxivBatchInput):
     official={s['code']:s for s in official_categories()}
     codes=list(dict.fromkeys(body.codes))
@@ -166,9 +209,9 @@ def validate_source(body):
     else:
         # New conferences must come from the supplied catalog. Keep historical
         # custom records editable without adding them back to the catalog.
-        if body.code not in VENUE_NAMES and not rows('SELECT key FROM source_categories WHERE key=?',(data['key'],)):
+        if body.code not in VENUE_CATALOG and not rows('SELECT key FROM source_categories WHERE key=?',(data['key'],)):
             raise HTTPException(400,'请选择目录中的会议')
-        data['discipline']=body.discipline or 'Computer Science'
+        data['discipline']=body.discipline or VENUE_CATALOG.get(body.code,{}).get('discipline','Computer Science')
         url=body.feed_url or 'https://papers.cool/venue/'+body.code+'/feed'
         parsed=urlparse(url)
         if parsed.scheme!='https' or parsed.hostname!='papers.cool' or parsed.username or parsed.password or parsed.port not in (None,443) or parsed.path!='/venue/'+body.code+'/feed' or parsed.query or parsed.fragment:raise HTTPException(400,'会议来源地址无效，请重新选择会议')

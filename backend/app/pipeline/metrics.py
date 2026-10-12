@@ -8,7 +8,32 @@ from ..llm.provider import cloud
 from ..taxonomy import scoped_topics
 
 
+def aggregate_day(db, user_id, day, archived=False):
+    frozen=db.execute('SELECT archived FROM daily_metrics WHERE date=? AND user_id=?',(day.isoformat(),user_id)).fetchone()
+    if frozen and frozen['archived']:return
+    zone=ZoneInfo(settings().tz)
+    start=datetime.combine(day,datetime.min.time(),zone).astimezone(timezone.utc).isoformat()
+    end=datetime.combine(day+timedelta(days=1),datetime.min.time(),zone).astimezone(timezone.utc).isoformat()
+    counts=db.execute("""SELECT COUNT(*) n,
+        COUNT(DISTINCT CASE WHEN action='view' OR (view_rule=0 AND action IN ('skip','like','save')) THEN paper_id END) shown,
+        COUNT(DISTINCT CASE WHEN action IN ('view','skip','like','save') THEN paper_id END) considered,
+        SUM(action='skip') skipped,SUM(action='like') liked,SUM(action='save') saved,SUM(action='expand') expanded,
+        SUM(action='skip' AND dwell_ms<1500) quick
+        FROM interactions i WHERE user_id=? AND created_at>=? AND created_at<?
+        AND NOT EXISTS(SELECT 1 FROM interactions u WHERE u.target_id=i.id AND u.action='undo')""",(user_id,start,end)).fetchone()
+    if not counts['n']:
+        # Only discard an unfinished aggregate when every original event was
+        # undone. Previously frozen totals are retained even without raw events.
+        db.execute('DELETE FROM daily_metrics WHERE date=? AND user_id=? AND archived=0',(day.isoformat(),user_id))
+        return
+    denominator=max(1,counts['considered'])
+    db.execute('INSERT INTO daily_metrics(date,user_id,shown,skipped,liked,saved,expanded,like_rate,quick_skip_rate,considered,archived) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(date,user_id) DO UPDATE SET shown=excluded.shown,skipped=excluded.skipped,liked=excluded.liked,saved=excluded.saved,expanded=excluded.expanded,like_rate=excluded.like_rate,quick_skip_rate=excluded.quick_skip_rate,considered=excluded.considered,archived=excluded.archived',
+               (day.isoformat(),user_id,counts['shown'],counts['skipped'],counts['liked'],counts['saved'],counts['expanded'],counts['liked']/denominator,counts['quick']/denominator,counts['considered'],int(archived)))
+
+
 def metrics():
+    from ..retention import STATS_DAYS
+    cutoff=date.fromisoformat(today())-timedelta(days=STATS_DAYS)
     zone=ZoneInfo(settings().tz)
     for item in rows('SELECT * FROM metric_dirty ORDER BY utc_date,user_id LIMIT 500'):
         utc=datetime.fromisoformat(item['utc_date']).replace(tzinfo=timezone.utc)
@@ -16,21 +41,8 @@ def metrics():
         with connect() as db:
             db.execute('BEGIN IMMEDIATE')
             for day in days:
-                start=datetime.combine(day,datetime.min.time(),zone).astimezone(timezone.utc).isoformat()
-                end=datetime.combine(day+timedelta(days=1),datetime.min.time(),zone).astimezone(timezone.utc).isoformat()
-                events=db.execute("SELECT paper_id,action,view_rule,dwell_ms FROM interactions i WHERE user_id=? AND created_at>=? AND created_at<? AND NOT EXISTS(SELECT 1 FROM interactions u WHERE u.target_id=i.id AND u.action='undo')",(item['user_id'],start,end)).fetchall()
-                if not events:
-                    db.execute('DELETE FROM daily_metrics WHERE date=? AND user_id=?',(day.isoformat(),item['user_id']));continue
-                counts={'skip':0,'like':0,'save':0,'expand':0,'quick':0};shown=set();considered=set()
-                for e in events:
-                    if e['action'] in ('view','skip','like','save'):considered.add(e['paper_id'])
-                    if e['action']=='view' or e['view_rule']==0 and e['action'] in ('skip','like','save'):shown.add(e['paper_id'])
-                    if e['action'] in counts:
-                        counts[e['action']]+=1
-                        if e['action']=='skip' and e['dwell_ms']<1500:counts['quick']+=1
-                denominator=max(1,len(considered))
-                db.execute('INSERT INTO daily_metrics(date,user_id,shown,skipped,liked,saved,expanded,like_rate,quick_skip_rate,considered) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(date,user_id) DO UPDATE SET shown=excluded.shown,skipped=excluded.skipped,liked=excluded.liked,saved=excluded.saved,expanded=excluded.expanded,like_rate=excluded.like_rate,quick_skip_rate=excluded.quick_skip_rate,considered=excluded.considered',
-                           (day.isoformat(),item['user_id'],len(shown),counts['skip'],counts['like'],counts['save'],counts['expand'],counts['like']/denominator,counts['quick']/denominator,len(considered)))
+                frozen=db.execute('SELECT archived FROM daily_metrics WHERE date=? AND user_id=?',(day.isoformat(),item['user_id'])).fetchone()
+                if day>=cutoff and not (frozen and frozen['archived']):aggregate_day(db,item['user_id'],day)
             db.execute('DELETE FROM metric_dirty WHERE user_id=? AND utc_date=? AND revision=?',(item['user_id'],item['utc_date'],item['revision']))
 
 

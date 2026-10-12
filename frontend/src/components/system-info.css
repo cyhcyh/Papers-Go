@@ -4,13 +4,24 @@
 .system-info>a:focus-visible,.system-info>button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .system-info-divider{width:1px;height:15px;background:var(--border);flex-shrink:0;margin:0 7px}
 .system-version{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;white-space:nowrap}
+.system-info>.system-version-button{width:auto;height:28px;gap:6px;padding:0 6px}
+.version-update-dot{width:6px;height:6px;flex-shrink:0;border-radius:50%;background:#d99c32}
+.version-update-label{font-size:10px;white-space:nowrap;color:#ad741c}
+:root.dark .version-update-label{color:#e6b660}
+.version-opening{position:fixed;top:64px;right:20px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--secondary);box-shadow:var(--shadow);z-index:1000}
 .topbar>.site-toolbar-actions,.admin-topbar>.admin-toolbar-actions{display:flex;align-items:center;gap:5px;margin-left:auto;flex-shrink:0}
 .guest-login-compact{display:none}
 .admin-breadcrumb{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .admin-auth-page{position:relative}
 .admin-auth-page>.auth-system-info-top{position:absolute;top:24px;right:32px}
 .auth-system-info-top .system-info-divider{display:none}
+@media(min-width:601px){
+ .version-update-dot{display:none}
+ .version-update-label{display:inline-flex;align-items:center;justify-content:center;padding:0 5px;border:0;border-radius:4px;background:#fbf0dc;color:#a66b18;font-size:9px;line-height:16px;font-weight:500}
+ :root.dark .version-update-label{background:#d99c321a;color:#e6b660}
+}
 @media(max-width:600px){
+ .version-update-label{display:none}
  .topbar>.site-toolbar-actions{gap:2px}
  .toolbar-system-info{gap:3px}
  .toolbar-system-info .system-info-divider{margin:0 4px}
@@ -19,4 +30,4 @@
  .admin-breadcrumb>.muted{display:none}
  .admin-auth-page>.auth-system-info-top{top:27px;right:24px}
 }
-@media(max-width:360px){.site-toolbar-actions .icon-button{width:28px}.site-toolbar-actions .system-info>a,.site-toolbar-actions .system-info>button{width:25px}.toolbar-system-info .system-info-divider{margin:0 2px}}
+@media(max-width:360px){.site-toolbar-actions .icon-button{width:28px}.site-toolbar-actions .system-info>a,.site-toolbar-actions .system-info>button{width:25px}.site-toolbar-actions .system-info>.system-version-button{width:auto;padding:0 4px}.toolbar-system-info .system-info-divider{margin:0 2px}}

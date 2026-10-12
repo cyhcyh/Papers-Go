@@ -10,13 +10,19 @@
 .source-kind-switch>button.selected{color:var(--source-blue);background:color-mix(in srgb,#3568ff 8%,var(--card));border-color:color-mix(in srgb,#3568ff 20%,var(--border));font-weight:600}
 .source-kind-switch>button:disabled{opacity:1;cursor:default}
 .source-dialog-body{min-height:0;overflow-y:auto;overflow-x:hidden;padding:0 1px 22px;overscroll-behavior:contain;scrollbar-width:none}
-.source-dialog-body::-webkit-scrollbar,.venue-picker-list::-webkit-scrollbar{display:none}
+.source-dialog-body::-webkit-scrollbar,.venue-catalog::-webkit-scrollbar{display:none}
 .source-dialog-section-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:13px}
 .source-dialog-section-heading h3{font-size:15px;line-height:1.5;color:var(--text)}
 .source-dialog-section-heading>span{font-size:11px;color:var(--secondary)}
 .source-dialog .venue-picker-search{display:flex;flex-direction:row;align-items:center;gap:8px;margin:0;min-width:0;width:48%;padding:0 12px;border:1px solid var(--border);border-radius:9px;color:var(--secondary);background:var(--card)}
 .source-dialog .venue-picker-search input{border:0;background:transparent;box-shadow:none;outline:none;font-size:12px;width:100%;min-width:0;padding:10px 0;color:var(--text)}
-.venue-picker-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;max-height:300px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding:1px}
+.venue-catalog{max-height:300px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding:1px}
+.venue-catalog .discipline-heading{font-size:12px}
+.venue-picker-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:1px 0 12px}
+.venue-selection-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 12px;font-size:12px;color:var(--secondary)}
+.venue-selection-tools>div{display:flex;gap:10px}
+.source-dialog .venue-selection-tools button{border:0;background:none;padding:3px 0;color:var(--source-blue);font-size:12px}
+.source-dialog .venue-selection-tools button:disabled{opacity:.45;cursor:default}
 .source-dialog .venue-choice{display:flex;align-items:center;gap:12px;text-align:left;min-width:0;min-height:75px;padding:12px 14px;border:1px solid var(--border);border-radius:11px;background:var(--card);color:var(--text);transition:border-color .15s,background .15s}
 .source-dialog .venue-choice:hover:enabled{border-color:color-mix(in srgb,#3568ff 40%,var(--border));background:color-mix(in srgb,#3568ff 3%,var(--card))}
 .source-dialog .venue-choice.selected{border-color:var(--source-blue);background:color-mix(in srgb,#3568ff 6%,var(--card));box-shadow:0 0 0 1px color-mix(in srgb,#3568ff 8%,transparent)}
@@ -24,7 +30,7 @@
 .venue-choice-text{flex:1;min-width:0}
 .venue-choice-text strong{display:block;font-size:14px;line-height:1.5;margin-bottom:3px;font-weight:600}
 .venue-choice-text small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:11px;line-height:1.45;font-weight:400;color:var(--secondary)}
-.venue-choice-check{display:flex;align-items:center;justify-content:center;flex:0 0 19px;width:19px;height:19px;border:1px solid color-mix(in srgb,var(--secondary) 40%,var(--border));border-radius:50%}
+.venue-choice-check{display:flex;align-items:center;justify-content:center;flex:0 0 19px;width:19px;height:19px;border:1px solid color-mix(in srgb,var(--secondary) 40%,var(--border));border-radius:5px}
 .venue-choice.selected .venue-choice-check{border-color:#3568ff;background:#3568ff;color:white}
 .venue-choice-added{flex-shrink:0;border-radius:6px;padding:4px 7px;font-size:10px;line-height:1.5;background:var(--card);color:var(--secondary)}
 .venue-picker-empty{grid-column:1/-1;padding:22px;text-align:center;color:var(--secondary);font-size:13px}
@@ -61,6 +67,19 @@
 .source-dialog .source-picker .search-input{border-radius:9px;background:var(--card)}
 .source-dialog .source-picker .search-input input{font-size:12px}
 .source-dialog-hint{margin:9px 0 0;font-size:11px;line-height:1.6;color:var(--secondary)}
+.venue-drafts{margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}
+.venue-draft-list{display:grid;gap:12px}
+.venue-draft{min-width:0;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+.venue-draft>header,.venue-draft>header>div{display:flex;align-items:center;gap:10px}
+.venue-draft>header{justify-content:space-between}
+.venue-draft>header strong{font-size:14px;color:var(--text)}
+.venue-draft>header span{font-size:11px;color:var(--secondary)}
+.source-dialog .venue-draft .source-dialog-fields{margin:12px 0;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) 76px}
+.venue-draft-options{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--border)}
+.source-dialog .venue-draft-options .source-dialog-option{gap:10px;padding:0;min-height:30px}
+.source-dialog .venue-draft-options .source-dialog-option strong{font-size:12px}
+.source-dialog .venue-test-button{display:inline-flex;align-items:center;gap:5px;padding:5px 0;margin-left:auto;background:none;border:0;color:var(--secondary);font-size:11px}
+.source-dialog .venue-test-button:disabled{opacity:.5;cursor:default}
 @media(max-width:600px){
  .source-dialog{width:100%;max-height:calc(100dvh - 28px);padding:18px 16px 0;border-radius:17px}
  .source-dialog .modal-header h2{gap:10px;font-size:17px}
@@ -71,7 +90,8 @@
  .source-dialog-section-heading{gap:10px}
  .source-dialog-section-heading h3{font-size:14px}
  .source-dialog .venue-picker-search{width:60%;padding:0 9px}
- .venue-picker-list{grid-template-columns:minmax(0,1fr);max-height:min(280px,34dvh);gap:7px}
+ .venue-catalog{max-height:min(280px,34dvh)}
+ .venue-picker-list{grid-template-columns:minmax(0,1fr);gap:7px}
  .source-dialog .venue-choice{min-height:64px;padding:10px 12px}
  .source-dialog .source-dialog-fields{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 62px;gap:10px;margin:16px 0}
  .source-dialog .source-dialog-fields input,.source-dialog .source-dialog-fields select{font-size:12px;padding:10px 9px}
@@ -84,5 +104,9 @@
  .source-dialog-footer>div{gap:7px}
  .source-dialog .source-dialog-footer button{padding:9px 11px;font-size:11px}
  .source-dialog .source-picker-list{max-height:min(250px,32dvh)}
+ .venue-draft{padding:12px}
+ .source-dialog .venue-draft .source-dialog-fields{grid-template-columns:minmax(0,1fr) 70px;gap:10px}
+ .venue-draft .source-dialog-fields>label:first-child{grid-column:1/-1}
+ .venue-draft-options{gap:10px 16px}
 }
 @media(prefers-reduced-motion:reduce){.source-dialog .venue-choice,.source-dialog-option input,.source-dialog-option input:after{transition:none}}

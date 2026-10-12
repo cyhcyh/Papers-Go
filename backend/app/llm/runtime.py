@@ -18,6 +18,7 @@ FEATURES = {
     'brief': ('中文标题与论文速读', 'JSON'),
     'embedding': ('向量生成（论文、兴趣、全文检索统一）', 'embedding'),
     'chat': ('智能助手', '流式回复与工具调用'),
+    'chat_compression': ('上下文压缩', '对话摘要'),
     'reading_l2': ('论文精读', 'JSON'),
     'reading_l3': ('深度解析', 'JSON 与长文阅读'),
     'interest_init': ('兴趣描述整理', 'JSON'),
@@ -41,6 +42,7 @@ def legacy_defaults():
     routes['embedding']['primary'] = local(cfg.embedding_model)
     routes['embedding']['primary']['thinking'] = 'auto'
     routes['chat']['primary'] = cloud(cfg.llm_model_chat)
+    routes['chat_compression']['primary'] = {'connection_id':'','model':'','thinking':'auto','reasoning_effort':'auto'}
     routes['audit']['primary'] = cloud(cfg.llm_model_fast)
     routes['brief']['fallback'] = cloud(cfg.llm_model_fast)
     for choice in (routes['brief']['primary'],routes['brief']['fallback']):
@@ -89,6 +91,9 @@ def configuration():
         import json
         from .secrets import decrypt_configuration
         config = decrypt_configuration(json.loads(saved['value']))
+        config['routes'].setdefault('chat_compression', {'primary':{'connection_id':'','model':'','thinking':'auto','reasoning_effort':'auto'},'fallback':None})
+        from ..agent.context_compression import CompressionSettings
+        config['chat_compression']=CompressionSettings.model_validate(config.get('chat_compression',{})).model_dump()
         config.setdefault('brief_cloud_concurrency',settings().brief_cloud_concurrency)
         config.setdefault('quality_cloud_concurrency',settings().quality_cloud_concurrency)
         config.setdefault('classify_cloud_concurrency',settings().classify_cloud_concurrency)
@@ -110,6 +115,8 @@ def configuration():
 
 def public_configuration(config=None, *, include_rebuild=True):
     config = copy.deepcopy(config or configuration())
+    from ..agent.context_compression import CompressionSettings
+    config.setdefault('chat_compression',CompressionSettings().model_dump())
     for connection in config['connections']:
         connection['configured'] = connection['kind'] == 'ollama' or bool(connection.pop('api_key', ''))
         connection.pop('api_key', None)
@@ -221,7 +228,7 @@ def bind(binding):
         _binding.reset(token)
 
 
-async def complete(feature, messages, json_mode=False, cache_seconds=0, purpose='precise', validate=None, schema=None, repair_validation=None):
+async def complete(feature, messages, json_mode=False, cache_seconds=0, purpose='precise', validate=None, schema=None, repair_validation=None, output_tokens=None, context_tokens=None):
     from .provider import cloud
     from .ollama import ollama
     with model_snapshot():
@@ -233,6 +240,10 @@ async def complete(feature, messages, json_mode=False, cache_seconds=0, purpose=
             check_cancelled()
             binding = resolve(choice)
             binding['feature'] = feature
+            if output_tokens is not None:
+                binding['output_tokens']=output_tokens
+            if context_tokens is not None:
+                binding['context_tokens']=context_tokens
             if schema:
                 binding['json_schema'] = schema
             with bind(binding):
@@ -321,6 +332,12 @@ async def stream(messages, tools, *, feature='chat', json_mode=False, schema=Non
             emitted = False
             started = time.perf_counter()
             binding={**resolve(choice), 'feature':feature}
+            if feature=='chat':
+                from ..agent.context_compression import policy, limits
+                compression=policy()
+                if compression.enabled:
+                    window,_=limits(binding,compression.context_window)
+                    if window:binding['context_tokens']=window
             if feature.startswith('reading_'):
                 from .reading_limits import reading_budget, token_upper_bound
                 context,output=reading_budget(binding,'L3' if feature=='reading_l3' else 'L2')
