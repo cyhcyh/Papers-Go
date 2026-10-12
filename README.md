@@ -7,6 +7,7 @@
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue" alt="AGPL-3.0" /></a>
     <a href="https://hub.docker.com/r/roger1001/papers-go"><img src="https://img.shields.io/badge/Deploy-Docker-2496ED?logo=docker&logoColor=white" alt="Docker" /></a>
   </p>
+  <p><strong>简体中文</strong> · <a href="README.en.md">English</a>　｜　<a href="docs/zh/index.md">使用文档</a> · <a href="docs/zh/quick-start.md">快速开始</a></p>
 </div>
 
 Papers-Go 是一个可自行部署的论文阅读与推荐网站，提供刷视频一样的刷论文体验。同步 arXiv 和会议论文，根据兴趣推荐值得读的内容，按需生成精读卡，并结合近期论文分析研究趋势。可以使用本地 Ollama，也可以连接云端模型，管理员可为不同功能分别选择模型。
