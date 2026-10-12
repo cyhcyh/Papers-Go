@@ -1,5 +1,6 @@
 """Persisted model connections and per-feature routing, frozen for each running task."""
 import copy
+import json
 import time
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -246,11 +247,20 @@ async def complete(feature, messages, json_mode=False, cache_seconds=0, purpose=
                     else:
                         return await cloud.complete(request_messages, purpose=purpose, json_mode=json_mode, cache_seconds=cache_seconds)
                 try:
-                    result = await request(messages)
-                    check_cancelled()
+                    unreceived = object()
+                    result = unreceived
                     try:
+                        result = await request(messages)
+                        check_cancelled()
                         value = validate(result) if validate else result
                     except Exception as error:
+                        check_cancelled()
+                        # Providers parse JSON before returning. Only output JSON errors
+                        # may enter repair here, never transport or truncation failures.
+                        if result is unreceived:
+                            if not json_mode or not isinstance(error, json.JSONDecodeError):
+                                raise
+                            result = error.doc
                         if repaired or repair_validation is None:
                             raise
                         repair_messages = repair_validation(result, error)
@@ -261,7 +271,7 @@ async def complete(feature, messages, json_mode=False, cache_seconds=0, purpose=
                         check_cancelled()
                         result = await request(repair_messages)
                         check_cancelled()
-                        value = validate(result)
+                        value = validate(result) if validate else result
                     event('model','模型调用完成',job=feature,model=binding['model'],kind_model=binding['kind'],thinking=binding.get('thinking'),reasoning_effort=binding.get('reasoning_effort'),seconds=round(time.perf_counter()-started,2))
                     return value
                 except Exception as error:

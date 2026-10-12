@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import lru_cache
 from pathlib import Path, PurePosixPath
+from datetime import datetime, timedelta
 
 import yaml
 from fastapi import HTTPException
@@ -37,6 +38,11 @@ CREATE TABLE IF NOT EXISTS chat_session_skills (
  session_id INTEGER NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
  skill_id TEXT NOT NULL REFERENCES agent_skills(id) ON DELETE CASCADE,
  PRIMARY KEY(session_id,skill_id));
+CREATE TABLE IF NOT EXISTS agent_skill_leases (
+ token TEXT NOT NULL,version_id TEXT NOT NULL REFERENCES agent_skill_versions(id) ON DELETE CASCADE,
+ expires_at TEXT NOT NULL,PRIMARY KEY(token,version_id));
+CREATE INDEX IF NOT EXISTS idx_skill_leases_version ON agent_skill_leases(version_id,expires_at);
+CREATE INDEX IF NOT EXISTS idx_skill_leases_expiry ON agent_skill_leases(expires_at);
 '''
 NAME = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')
 BASE_TOOLS = {'search_papers', 'read_now', 'show_profile', 'update_interest', 'add_watch'}
@@ -44,13 +50,52 @@ SKILL_TOOLS = {'list_skills', 'get_skill', 'activate_skill', 'read_skill_resourc
 CHAT_TOOLS = BASE_TOOLS | SKILL_TOOLS
 SYSTEM_DIR = Path(__file__).with_name('skills')
 _loaded = ContextVar('loaded_skill_versions', default=None)
+_lease = ContextVar('skill_invocation_lease', default=None)
 
 
 @contextmanager
 def invocation():
     token=_loaded.set({})
+    lease_id=uuid.uuid4().hex;lease_token=_lease.set(lease_id)
     try:yield
-    finally:_loaded.reset(token)
+    finally:
+        loaded=_loaded.get()
+        _loaded.reset(token);_lease.reset(lease_token)
+        if loaded:release_lease(lease_id)
+
+
+def release_lease(token):
+    with connect() as db:
+        db.execute('DELETE FROM agent_skill_leases WHERE token=?',(token,))
+
+
+def pin_version(item,token,version_id=None):
+    """Coordinate cross-process file eviction with lazy reads and chat turns."""
+    with connect() as db:
+        db.execute('BEGIN IMMEDIATE')
+        vid=version_id or item['version_id']
+        if not db.execute('SELECT 1 FROM agent_skill_versions WHERE id=? AND skill_id=?',(vid,item['id'])).fetchone():
+            if version_id:raise HTTPException(404,'版本不存在')
+            current=db.execute('SELECT * FROM agent_skills WHERE id=?',(item['id'],)).fetchone()
+            if not current:raise HTTPException(404,'技能不存在')
+            item=dict(current);vid=item['version_id']
+        # A crashed process cannot keep an old version pinned indefinitely.
+        expiry=(datetime.fromisoformat(now())+timedelta(days=1)).isoformat()
+        db.execute('INSERT INTO agent_skill_leases VALUES(?,?,?) ON CONFLICT(token,version_id) DO UPDATE SET expires_at=excluded.expires_at',
+                   (token,vid,expiry))
+    return {**item,'version_id':vid}
+
+
+@contextmanager
+def bundle_read(item,version_id=None):
+    frozen=(_loaded.get() or {}).get(item['id'])
+    if frozen and frozen['version_id']==(version_id or item['version_id']):
+        yield item,read_bundle(str(root()),item['id'],frozen['version_id'])
+        return
+    token=uuid.uuid4().hex
+    item=pin_version(item,token,version_id)
+    try:yield item,read_bundle(str(root()),item['id'],item['version_id'])
+    finally:release_lease(token)
 
 
 class SkillEdit(BaseModel):
@@ -197,9 +242,10 @@ def summary(item):
 
 def detail(ident,user_id=None,admin=False):
     item=record(ident);authorized(item,user_id,admin)
-    data=read_bundle(str(root()),ident,item['version_id'])
+    with bundle_read(item) as (item,data):
+        resources={name:(Path(data['package'])/name).read_bytes().decode('utf-8') for name in data['resources']}
     result={**summary(item),**{k:v for k,v in data.items() if k!='package'},
-            'resources':{name:(Path(data['package'])/name).read_bytes().decode('utf-8') for name in data['resources']},
+            'resources':resources,
             'editable':bool(admin and item['scope']!='personal' or item['scope']=='personal' and item['owner_id']==user_id),
             'bindings':['向量与质量 · 质量评估'] if item['system_key']=='quality' else ['智能助手']}
     if item['system_key']=='quality':
@@ -224,9 +270,16 @@ def catalog(user_id,admin=False,scope='all',query='',page=1,page_size=20):
 
 
 def system_instruction(key):
-    item=one('SELECT id,version_id,revision,enabled,instruction_version FROM agent_skills WHERE system_key=?',(key,))
-    if not item:return None
-    return {**read_bundle(str(root()),item['id'],item['version_id']),'revision':item['instruction_version'] or str(item['revision']),'enabled':bool(item['enabled'])}
+    # Pipeline snapshots only use copied text, not lazy resource paths. Keep
+    # this frequent read free of lease writes. If eviction races the read,
+    # reload the current immutable package once instead of using missing files.
+    for attempt in range(2):
+        item=one('SELECT id,version_id,revision,enabled,instruction_version FROM agent_skills WHERE system_key=?',(key,))
+        if not item:return None
+        try:
+            return {**read_bundle(str(root()),item['id'],item['version_id']),'revision':item['instruction_version'] or str(item['revision']),'enabled':bool(item['enabled'])}
+        except FileNotFoundError:
+            if attempt:raise
 
 
 def _persist(db,item,body,user_id):
@@ -343,17 +396,30 @@ def version_detail(ident,revision,user_id,admin=False):
     item=record(ident);authorized(item,user_id,admin)
     old=one('SELECT id FROM agent_skill_versions WHERE skill_id=? AND revision=?',(ident,revision))
     if not old:raise HTTPException(404,'版本不存在')
-    data=read_bundle(str(root()),ident,old['id'])
-    return {'text':data['text'],'document':data['document'],'resources':data['resources'],'revision':revision}
+    with bundle_read(item,old['id']) as (_,data):
+        return {'text':data['text'],'document':data['document'],'resources':data['resources'],'revision':revision}
 
 
 def restore(ident,revision,user_id,admin=False):
     item=record(ident);authorized(item,user_id,admin,edit=True)
     old=one('SELECT id FROM agent_skill_versions WHERE skill_id=? AND revision=?',(ident,revision))
     if not old:raise HTTPException(404,'版本不存在')
-    data=read_bundle(str(root()),ident,old['id']);meta,text=parse_document(data['document'])
-    return save(ident,SkillEdit(name=meta['name'],title=meta.get('metadata',{}).get('title',meta['name']),description=meta['description'],
-                text=text,document=data['document'],resources={name:(Path(data['package'])/name).read_bytes().decode('utf-8') for name in data['resources']},expected_revision=item['revision']),user_id,admin)
+    with bundle_read(item,old['id']) as (_,data):
+        meta,text=parse_document(data['document'])
+        body=SkillEdit(name=meta['name'],title=meta.get('metadata',{}).get('title',meta['name']),description=meta['description'],
+                text=text,document=data['document'],resources={name:(Path(data['package'])/name).read_bytes().decode('utf-8') for name in data['resources']},expected_revision=item['revision'])
+    return save(ident,body,user_id,admin)
+
+
+def remove_version_files(ident,version_id):
+    # Only an immutable version directory inside the configured data root.
+    candidate=bundle_path(ident,version_id,'unused').parent
+    target_root=root().resolve()
+    path=candidate.resolve()
+    if candidate.is_symlink() or candidate.parent.is_symlink() or path.parent!=target_root/ident:
+        raise ValueError('技能目录越界')
+    if path.exists():shutil.rmtree(path)
+    read_bundle.cache_clear()
 
 
 def remove_files(ids):
@@ -390,9 +456,9 @@ def inspect(ident,user_id):
     item=record(ident);authorized(item,user_id)
     if item['scope']=='shared' and (item['status']!='active' or not item['enabled']):
         raise HTTPException(404,'技能不存在')
-    data=read_bundle(str(root()),ident,item['version_id'])
-    return {**{k:item[k] for k in ('id','name','title','description','scope','enabled','revision')},
-            'text':data['text'],'allowed_tools':data['allowed_tools'],'resources':list(data['resources'])}
+    with bundle_read(item) as (item,data):
+        return {**{k:item[k] for k in ('id','name','title','description','scope','enabled','revision')},
+                'text':data['text'],'allowed_tools':data['allowed_tools'],'resources':list(data['resources'])}
 
 
 def activate(ident,user_id,session_id):
@@ -413,10 +479,11 @@ def activate(ident,user_id,session_id):
 def activation_content(item):
     frozen=_loaded.get()
     if frozen is not None and item['id'] in frozen:item=frozen[item['id']]
-    elif frozen is not None:frozen[item['id']]=dict(item)
-    data=read_bundle(str(root()),item['id'],item['version_id'])
-    return {'id':item['id'],'title':item['title'],'name':item['name'],'revision':item['revision'],
-            'instructions':data['text'],'resources':list(data['resources']),'allowed_tools':data['allowed_tools']}
+    elif frozen is not None:
+        item=pin_version(item,_lease.get());frozen[item['id']]=dict(item)
+    with bundle_read(item,item['version_id'] if frozen is not None else None) as (item,data):
+        return {'id':item['id'],'title':item['title'],'name':item['name'],'revision':item['revision'],
+                'instructions':data['text'],'resources':list(data['resources']),'allowed_tools':data['allowed_tools']}
 
 
 def session_context(session_id,user_id):
@@ -429,6 +496,6 @@ def resource(ident,path,user_id,session_id):
     if not item['enabled'] or not one('SELECT 1 FROM chat_session_skills c JOIN chat_sessions s ON s.id=c.session_id WHERE c.session_id=? AND c.skill_id=? AND s.user_id=?',(session_id,ident,user_id)):
         raise HTTPException(400,'请先加载技能')
     item=(_loaded.get() or {}).get(ident,item)
-    data=read_bundle(str(root()),ident,item['version_id'])
-    if path not in data['resources']:raise HTTPException(404,'参考资料不存在')
-    return {'path':path,'text':(Path(data['package'])/path).read_bytes().decode('utf-8')}
+    with bundle_read(item,item['version_id'] if ident in (_loaded.get() or {}) else None) as (_,data):
+        if path not in data['resources']:raise HTTPException(404,'参考资料不存在')
+        return {'path':path,'text':(Path(data['package'])/path).read_bytes().decode('utf-8')}

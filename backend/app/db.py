@@ -218,6 +218,8 @@ def init_db(recover=True):
             UPDATE app_settings SET value=CAST(value AS INTEGER)+1 WHERE name='paper_revision'; END""")
         from .agent_skills import initialize as initialize_skills
         initialize_skills(db)
+        from .retention import initialize as initialize_retention
+        initialize_retention(db)
         from .interest.profile_updates import initialize_upgrade
         initialize_upgrade(db)
         # A process interrupted during generation can retry safely.

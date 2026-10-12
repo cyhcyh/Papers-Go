@@ -1,5 +1,6 @@
 from .. import prompts
 from ..llm import runtime as models
+from ..llm.json_repair import repair_messages
 import json
 import asyncio
 import time
@@ -61,9 +62,11 @@ async def score_paper(p):
         return {**assessment, 'discipline':material['discipline'], 'material_level':material['material_level'],
                 'model':binding['model'], 'provider':binding['kind'], 'prompt_id':key,
                 'prompt_version':prompts.revision(key), 'formula_version':VERSION, 'generated_at':now()}
-    result = await models.complete('quality', [{'role':'system','content':prompts.get(key)},
-        {'role':'user','content':dumps(material)}], json_mode=True, validate=validate,
-        schema=QualityAssessment.model_json_schema(by_alias=False))
+    messages = [{'role':'system','content':prompts.get(key)},
+                {'role':'user','content':dumps(material)}]
+    schema = QualityAssessment.model_json_schema(by_alias=False)
+    result = await models.complete('quality', messages, json_mode=True, validate=validate,
+        schema=schema, repair_validation=lambda result,error:repair_messages(messages,result,error,schema))
     QualityAssessment.model_validate(result)
     if 'formula_version' not in result:result=validate(result)
     if material['material_level']=='abstract':result={**result,'evidence_insufficient':True}

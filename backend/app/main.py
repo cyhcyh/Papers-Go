@@ -41,10 +41,12 @@ async def lifespan(app):
     load_task=asyncio.create_task(publish_loop())
     log_task=asyncio.create_task(maintain_logs())
     scheduler = make_scheduler()
-    task, worker, interest_task, author_task, deletion_task = None, None, None, None, None
+    task, worker, interest_task, author_task, deletion_task, retention_task = None, None, None, None, None, None
     if settings().pipeline_mode=='inline':
         from . import source_deletion_queue
         deletion_task=asyncio.create_task(source_deletion_queue.serve())
+        from . import retention
+        retention_task=asyncio.create_task(retention.maintain())
         from .pipeline import author_runs
         from . import scheduler as task_scheduler
         author_runs.recover()
@@ -73,6 +75,9 @@ async def lifespan(app):
     if deletion_task:
         deletion_task.cancel()
         await asyncio.gather(deletion_task,return_exceptions=True)
+    if retention_task:
+        retention_task.cancel()
+        await asyncio.gather(retention_task,return_exceptions=True)
     pending = list(_manual_tasks)+list(_tasks.values())+([task] if task else [])+([interest_task] if interest_task else [])
     for running in pending: running.cancel()
     if pending: await asyncio.gather(*pending,return_exceptions=True)

@@ -35,6 +35,34 @@ def install_mock(monkeypatch, handler):
 
 
 @pytest.mark.asyncio
+async def test_old_cursor_only_backfills_recent_seven_days(client,monkeypatch):
+    requests=[]
+    def handler(request):
+        requests.append(request.url.params['search_query'])
+        return httpx.Response(200,text=atom([]))
+    install_mock(monkeypatch,handler)
+    execute('INSERT INTO arxiv_cursors VALUES(?,?,?)',('cs.AI','2010-01-01T00:00:00+00:00','2010-01-01T00:00:00+00:00'))
+    await fetch.fetch_arxiv()
+    assert len(requests)==8
+    assert all('submittedDate:[202609' in q or 'submittedDate:[20261001' in q for q in requests)
+    assert 'submittedDate:[202609241200 TO 202609250000]' in requests[0]
+    assert one("SELECT synced_through FROM arxiv_cursors WHERE category='cs.AI'")['synced_through']=='2026-10-01T12:00:00+00:00'
+
+
+@pytest.mark.asyncio
+async def test_quantity_limited_trial_also_has_recent_date_bound(client,monkeypatch):
+    requests=[]
+    def handler(request):
+        requests.append(request.url.params['search_query'])
+        return httpx.Response(200,text=atom([]))
+    install_mock(monkeypatch,handler)
+    await fetch.fetch_arxiv(limit=2)
+    assert len(requests)==2
+    assert all('submittedDate:[202609241200 TO 202610011200]' in q for q in requests)
+    assert not one('SELECT 1 FROM arxiv_cursors')
+
+
+@pytest.mark.asyncio
 async def test_daily_sync_fetches_all_pages_and_deduplicates_cross_listings(client, monkeypatch):
     requests = []
     def handler(request):
@@ -55,7 +83,7 @@ async def test_daily_sync_fetches_all_pages_and_deduplicates_cross_listings(clie
     assert json.loads(one("SELECT categories FROM papers WHERE arxiv_id='2609.00001'")['categories']) == ['cs.AI', 'math.CO']
     for category in ('cs.AI', 'math.CO'):
         cursor = one('SELECT * FROM arxiv_cursors WHERE category=?', (category,))
-        assert cursor['first_sync_from'] == '2026-09-24T00:00:00+00:00'
+        assert cursor['first_sync_from'] == '2026-09-24T12:00:00+00:00'
         assert cursor['synced_through'] == '2026-10-01T12:00:00+00:00'
 
 
@@ -113,7 +141,7 @@ async def test_incomplete_or_error_atom_never_advances_cursor(client, monkeypatc
     install_mock(monkeypatch, lambda request: httpx.Response(200, text=payload))
     with pytest.raises(RuntimeError):
         await fetch.fetch_arxiv()
-    assert one("SELECT synced_through FROM arxiv_cursors WHERE category='cs.AI'")['synced_through'] == '2026-09-24T00:00:00+00:00'
+    assert one("SELECT synced_through FROM arxiv_cursors WHERE category='cs.AI'")['synced_through'] == '2026-09-24T12:00:00+00:00'
 
 
 @pytest.mark.asyncio

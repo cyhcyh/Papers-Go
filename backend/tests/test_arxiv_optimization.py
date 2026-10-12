@@ -23,7 +23,7 @@ async def test_complete_windows_are_reused_only_within_the_same_api_refresh_cycl
     assert await fetch.fetch_arxiv() == 0 and calls == []
     # DST in October: the next API refresh is at 04:00 UTC.
     monkeypatch.setattr(fetch,'now',lambda:'2026-10-02T04:01:00+00:00')
-    assert await fetch.fetch_arxiv() == 0 and len(calls) == 9
+    assert await fetch.fetch_arxiv() == 0 and len(calls) == 8
     assert 'cat:cs.AI OR cat:math.CO' in calls[0].url.params['search_query']
 
 
@@ -100,4 +100,4 @@ async def test_rate_limit_failure_stops_other_windows_and_preserves_cursors(clie
     with pytest.raises(RuntimeError):
         await fetch.fetch_arxiv()
     assert len(calls)==3
-    assert all(r['synced_through']=='2026-09-24T00:00:00+00:00' for r in rows('SELECT synced_through FROM arxiv_cursors'))
+    assert all(r['synced_through']=='2026-09-24T12:00:00+00:00' for r in rows('SELECT synced_through FROM arxiv_cursors'))

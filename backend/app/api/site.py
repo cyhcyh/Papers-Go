@@ -103,11 +103,14 @@ def _compute_overview(days):
             SUM(i.action IN ('like','save','skip','expand')) actions
             FROM interactions i WHERE i.created_at>=? AND i.action IN ('view','like','save','skip','expand')
             AND NOT EXISTS(SELECT 1 FROM interactions u WHERE u.target_id=i.id AND u.action='undo') GROUP BY day""",(utc(start),))}
-        usage={r['day']:dict(r) for r in db.execute('SELECT local_day(created_at) day,SUM(input_tokens) input_tokens,SUM(output_tokens) output_tokens,SUM(usage_known=0) unknown_usage,COUNT(*) calls FROM llm_usage WHERE billing_source="api" AND created_at>=? GROUP BY day',(utc(start),))}
-        by_model=[dict(r) for r in db.execute('SELECT model,SUM(input_tokens) input_tokens,SUM(output_tokens) output_tokens,SUM(usage_known=0) unknown_usage,COUNT(*) calls FROM llm_usage WHERE billing_source="api" AND created_at>=? GROUP BY model ORDER BY SUM(input_tokens+output_tokens) DESC',(utc(start),))]
-        by_feature=[{**dict(r),'label':FEATURES.get(r['feature'],('历史 / 未标注功能',))[0]} for r in db.execute('SELECT feature,SUM(input_tokens) input_tokens,SUM(output_tokens) output_tokens,SUM(usage_known=0) unknown_usage,COUNT(*) calls FROM llm_usage WHERE billing_source="api" AND created_at>=? GROUP BY feature ORDER BY SUM(input_tokens+output_tokens) DESC',(utc(start),))]
-        by_connection=[dict(r) for r in db.execute('SELECT connection_id,SUM(input_tokens) input_tokens,SUM(output_tokens) output_tokens,COUNT(*) calls FROM llm_usage WHERE billing_source="api" AND created_at>=? GROUP BY connection_id ORDER BY SUM(input_tokens+output_tokens) DESC',(utc(start),))]
-        subscription=[dict(r) for r in db.execute("SELECT model,SUM(input_tokens) input_tokens,SUM(output_tokens) output_tokens,SUM(usage_known=0) unknown_usage,COUNT(*) calls FROM llm_usage WHERE billing_source='subscription' AND created_at>=? GROUP BY model",(utc(start),))]
+        from ..usage_history import usage_rows, breakdown
+        usage_records=usage_rows(db,utc(start),start.isoformat())
+        usage={r['day']:r for r in breakdown(usage_records,'day')}
+        by_model=breakdown(usage_records,'model')
+        by_feature=[{**r,'label':FEATURES.get(r['feature'],('历史 / 未标注功能',))[0]} for r in breakdown(usage_records,'feature')]
+        by_connection=breakdown(usage_records,'connection_id')
+        for row in by_connection:row.pop('unknown_usage')
+        subscription=breakdown(usage_records,'model','subscription')
         import json
         saved=db.execute("SELECT value FROM app_settings WHERE name='models'").fetchone()
         connection_names={c['id']:c['name'] for c in json.loads(saved['value'])['connections']} if saved else {'local':'本地 Ollama','cloud':'默认云端'}

@@ -133,6 +133,7 @@ async def fetch_arxiv(limit=None):
     if limit is not None and limit <= 0:
         raise ValueError('试运行数量必须大于 0')
     cutoff = datetime.fromisoformat(now()).astimezone(timezone.utc).replace(second=0, microsecond=0)
+    oldest = cutoff-timedelta(days=7)
     # API search data refreshes at US Eastern midnight, including DST changes.
     cycle = cutoff.astimezone(ZoneInfo('America/New_York')).replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
     processed, stored, blocked = set(), set(), set()
@@ -172,7 +173,7 @@ async def fetch_arxiv(limit=None):
         for category in categories:
             cursor = one('SELECT * FROM arxiv_cursors WHERE category=?', (category,))
             if cursor is None:
-                baseline = (cutoff-timedelta(days=7)).replace(hour=0, minute=0)
+                baseline = oldest
                 with connect() as db:
                     db.execute('BEGIN IMMEDIATE')
                     if not db.execute('SELECT 1 FROM source_categories WHERE key=?',('arxiv:'+category,)).fetchone():
@@ -181,7 +182,11 @@ async def fetch_arxiv(limit=None):
                 start_time = baseline
             else:
                 baseline = datetime.fromisoformat(cursor['first_sync_from'])
-                start_time = max(baseline, (datetime.fromisoformat(cursor['synced_through'])-timedelta(days=7)).replace(hour=0, minute=0))
+                synced = datetime.fromisoformat(cursor['synced_through'])
+                start_time = max(oldest, baseline, (synced-timedelta(days=7)).replace(hour=0, minute=0))
+                if synced < oldest:
+                    event('source','同步间隔超过 7 天，仅补抓最近 7 天',job='fetch_arxiv',category=category,
+                          previous_sync=synced.isoformat(),window_start=start_time.isoformat())
             while start_time < cutoff:
                 end_time = min((start_time+timedelta(days=1)).replace(hour=0,minute=0), cutoff)
                 windows.setdefault((start_time,end_time),[]).append(category)
@@ -240,7 +245,7 @@ async def fetch_arxiv(limit=None):
                 query += f' AND submittedDate:[{start_time:%Y%m%d%H%M} TO {end_time:%Y%m%d%H%M}]'
                 budget = None
             else:
-                query = 'cat:'+query_codes[0]
+                query = f'cat:{query_codes[0]} AND submittedDate:[{oldest:%Y%m%d%H%M} TO {cutoff:%Y%m%d%H%M}]'
                 budget = budgets[end_time]
             identities = {c:[] for c in query_codes}
             start, size = 0, min(500,budget) if budget else 500

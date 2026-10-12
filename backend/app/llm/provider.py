@@ -85,7 +85,6 @@ class CloudLLM:
         if cache_seconds:
             if json_mode:content=dumps(parsed)
             execute('INSERT OR REPLACE INTO llm_cache VALUES(?,?,?)', (key, content, int(time.time()) + cache_seconds))
-            execute('DELETE FROM llm_cache WHERE expires_at<?', (int(time.time()),))
         return parsed
 
     async def stream(self, messages, tools, *, json_mode=False):

@@ -486,8 +486,16 @@ async def llm_status():
     config=model_runtime.configuration()
     choice=config['routes']['chat']['primary']
     connection=next((c for c in config['connections'] if c['id']==choice['connection_id']),{})
+    from ..usage_history import usage_rows
+    from collections import defaultdict
+    usage=defaultdict(lambda: [0,0])
+    with connect() as db:
+        for row in usage_rows(db,today()):
+            if row['billing_source']=='api':
+                value=usage[(row['day'],row['model'])]
+                value[0]+=row['input_tokens'] or 0;value[1]+=row['output_tokens'] or 0
     return {'base_url':connection.get('base_url',''),'configured':model_runtime.configured('chat'),
         'models':{key:config['routes'][feature]['primary']['model'] for key,feature in (('chat','chat'),('precise','reading_l2'),('fast','audit'))},
         'ollama':await ollama.status() if any(c['kind']=='ollama' for c in config['connections']) else {'available':False,'ready':False,'models':[]},
-        'usage':rows('SELECT substr(created_at,1,10) AS date,model,SUM(input_tokens) AS input_tokens,SUM(output_tokens) AS output_tokens FROM llm_usage WHERE billing_source="api" AND created_at>=? GROUP BY date,model',(today(),)),
+        'usage':[{'date':day,'model':model,'input_tokens':tokens[0],'output_tokens':tokens[1]} for (day,model),tokens in usage.items()],
         'audit':one("SELECT detail,created_at FROM audit_log WHERE action='classification.audit' ORDER BY id DESC LIMIT 1")}

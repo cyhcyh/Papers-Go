@@ -62,6 +62,8 @@ async def serve():
     interest_task=asyncio.create_task(profile_updates.serve())
     from . import source_deletion_queue
     deletion_task=asyncio.create_task(source_deletion_queue.serve())
+    from . import retention
+    retention_task=asyncio.create_task(retention.maintain())
     execute('UPDATE source_status SET running=0')
     execute("UPDATE pipeline_commands SET status='interrupted' WHERE status='processing'")
     execute("UPDATE pipeline_redo_runs SET status='stopped' WHERE status='running' OR status='queued' AND id NOT IN (SELECT redo_id FROM pipeline_commands WHERE status='queued' AND redo_id IS NOT NULL)")
@@ -119,6 +121,8 @@ async def serve():
         await asyncio.gather(reading_task,return_exceptions=True)
         deletion_task.cancel()
         await asyncio.gather(deletion_task,return_exceptions=True)
+        retention_task.cancel()
+        await asyncio.gather(retention_task,return_exceptions=True)
         interest_task.cancel()
         await asyncio.gather(interest_task,return_exceptions=True)
         cache_task.cancel()

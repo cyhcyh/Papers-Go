@@ -2,6 +2,7 @@ from .. import prompts
 import asyncio
 import time
 from ..llm import runtime as models
+from ..llm.json_repair import repair_messages
 from ..config import settings
 from ..db import rows, one, execute, dumps
 from ..logs import event
@@ -70,15 +71,17 @@ def validate_brief(value):
 async def generate_brief(paper):
     messages = [{'role': 'system', 'content': prompts.get('brief')},
                 {'role': 'user', 'content': paper['title'] + '\n' + paper['abstract']}]
+    schema = PaperBrief.model_json_schema()
     def compact(result, error):
         if not isinstance(error, BriefLengthError):
-            return None
+            return repair_messages(messages, result, error, schema)
         event('task','论文速读超长，尝试精简一次',job='tldr_gen',paper_id=paper['id'],fields=error.fields)
         return [*messages, {'role':'assistant', 'content':dumps(result)},
-                {'role':'user', 'content':prompts.get('brief_compact')+'\n'+str(error)}]
+                {'role':'user', 'content':prompts.get('brief_compact')+'\n'+str(error)
+                 +'\n输出结构与长度限制：'+dumps(schema)}]
     try:
         brief = await models.complete('brief', messages, json_mode=True, validate=validate_brief,
-                                      schema=PaperBrief.model_json_schema(), repair_validation=compact)
+                                      schema=schema, repair_validation=compact)
     except BriefLengthError as error:
         event('task','论文速读精简后仍超长，本轮处理失败',level='error',job='tldr_gen',paper_id=paper['id'],fields=error.fields)
         raise

@@ -121,6 +121,11 @@ services:
       - ./data:/data
       - ./.secrets:/secrets
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 30s
@@ -148,6 +153,11 @@ services:
       app:
         condition: service_healthy
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 ```
 
 ```bash
@@ -184,6 +194,11 @@ services:
       - ./data:/data
       - ./.secrets:/secrets
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 30s
@@ -211,6 +226,11 @@ services:
       app:
         condition: service_healthy
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
   ollama:
     gpus: all
     image: ollama/ollama:0.11.11
@@ -222,6 +242,11 @@ services:
     volumes:
       - ollama:/root/.ollama
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 volumes:
   ollama:
 ```
