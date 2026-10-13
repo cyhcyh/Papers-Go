@@ -36,10 +36,10 @@
 .version-change-group h5{display:flex;align-items:center;gap:6px;margin:0 0 7px;font-size:12px;font-weight:600;color:var(--secondary)}
 .version-change-group h5 i{width:5px;height:5px;border-radius:50%;background:#4a91e5}
 .version-change-changed h5 i{background:#b18ad4}.version-change-fixed h5 i{background:#41a68a}
-.version-change-group ul{padding-left:18px;margin:0;color:var(--secondary)}
+.version-change-group ol{list-style:decimal outside;padding-left:22px;margin:0;color:var(--secondary)}
 .version-change-group li{padding-left:2px;font-size:13px;line-height:1.8;overflow-wrap:anywhere}
 .version-change-group li+li{margin-top:5px}
-.version-change-group li::marker{color:var(--muted);font-size:10px}
+.version-change-group li::marker{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 .version-notes-hint{background:var(--soft);color:var(--secondary);font-size:12px;padding:10px 12px;margin-top:14px;border-radius:8px}
 .version-notes-empty{font-size:13px;color:var(--secondary);padding:22px 0}
 .version-dialog-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid var(--border);padding:17px 26px;background:var(--card);flex-shrink:0}

@@ -98,12 +98,14 @@ cd Papers-Go
 
 Choose one of the complete configurations below, save it as `docker-compose.yml` in the deployment directory, and run its startup commands. An `.env` file is optional. Configure model connections and selections in the administration console.
 
+**The examples below are for new installations. Existing sites should keep their current Compose configuration and update only the images. Retain the original project name, ports, data directory, key directory, and model volume. Do not replace an existing configuration with a fresh-install example.**
+
 ### Option 1: Application only
 
 Use an existing Ollama service or a cloud API. This configuration starts the website and background worker.
 
 ```yaml
-name: shualunwen
+name: papers-go
 services:
   app:
     image: roger1001/papers-go:latest
@@ -176,7 +178,7 @@ Open [http://localhost:8000](http://localhost:8000). After first registration, a
 This option requires an NVIDIA GPU available to Docker. Linux hosts need NVIDIA Container Toolkit, and GPU configuration requires Docker Compose 2.30 or newer. It starts Ollama without selecting or downloading models.
 
 ```yaml
-name: shualunwen
+name: papers-go
 services:
   app:
     image: roger1001/papers-go:latest
@@ -262,14 +264,14 @@ docker compose up -d
 
 Open [http://localhost:8000](http://localhost:8000). Use `http://ollama:11434` for the Ollama connection. Prepare models in Ollama, then refresh the model list and assign features in the console. See the [Ollama documentation](https://docs.ollama.com/docker) for service and model management.
 
-If you downloaded the source, the repository also provides equivalent split configurations:
+If you downloaded the source, the repository also provides split configurations. These files retain the historical default project name for existing deployments:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.ollama.yml -f docker-compose.gpu.yml pull
 docker compose -f docker-compose.yml -f docker-compose.ollama.yml -f docker-compose.gpu.yml up -d
 ```
 
-If host port `11434` is occupied, change the Ollama host port. Internal connections still use `http://ollama:11434`. Both deployment approaches keep the same project name, data directories, and model volume so existing installations retain their data and model cache.
+If host port `11434` is occupied, change the Ollama host port. Internal connections still use `http://ollama:11434`. Keep the actual project name, data directories, and model volume when switching deployment methods or updating. Changing the project name creates a separate set of containers and may select an empty model volume.
 
 ### External access
 
@@ -313,7 +315,7 @@ Use **Prompts** to edit instructions for new calls, and **Skills** to manage ski
 
 - `data/`: SQLite databases, user data, reading caches, and runtime skill files.
 - `.secrets/`: credential encryption key, mounted at `/secrets/model-keys.key` in Docker.
-- Docker named volume `shualunwen_ollama`: downloaded Ollama models.
+- Docker named volume: downloaded Ollama models. The new-install examples above use `papers-go_ollama`. Existing deployments retain their original model volume, whose actual name depends on the Compose project name.
 
 API keys are encrypted and not returned in plain text by the interface. Back up `data/` and `.secrets/` together. Without the original key, stored model credentials cannot be decrypted. Do not commit `.env`, databases, or encryption keys to a public repository.
 
@@ -322,6 +324,8 @@ Logs redact API keys, Authorization values, and other sensitive fields. Retentio
 <a name="updates-and-backups" id="updates-and-backups"></a>
 
 ## Updates and backups
+
+Existing sites do not need to migrate containers or data for this naming update. Keep the current Compose configuration and project name. If installation used `-p` or `COMPOSE_PROJECT_NAME`, retain the same setting for updates, backups, and restoration.
 
 Back up before updating. Stop the application and worker, copy complete `data/`, `.secrets/`, `docker-compose.yml`, and optional `.env` to a safe location, then restart. Keep every file under `data/`, rather than only the main SQLite file. Credentials require the matching encryption key. Also back up active Ollama/GPU overlay files if used.
 

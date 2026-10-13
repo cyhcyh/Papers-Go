@@ -11,6 +11,8 @@ docker compose ps
 docker compose logs --tail=100 app worker
 ```
 
+更新和恢复时保留当前项目名、Compose 配置和全部挂载，不要用新安装示例覆盖它们。如果安装时使用了 `-p` 或 `COMPOSE_PROJECT_NAME`，下面的命令也要沿用同一设置。
+
 使用 Ollama / GPU 叠加配置的部署，以下所有命令都需保留安装时的同一组 `-f` 参数。
 
 ## 备份

@@ -216,13 +216,20 @@ def browse(topic_id: int | None=None,category: str | None=None,range: Literal['t
 
 
 @router.get('/library')
-def library(type: Literal['like','save','history']='save',limit: int=Query(20,ge=1,le=100),cursor: str=Query('',max_length=200),query: str=Query('',max_length=200),user=Depends(current_user)):
+def library(type: Literal['like','save','history']='save',limit: int=Query(20,ge=1,le=100),cursor: str=Query('',max_length=200),query: str=Query('',max_length=200),category: str | None=None,topic_id: int | None=Query(None,ge=1),user=Depends(current_user)):
     query=query.strip()
     search_sql='';search_args=[]
     if query:
         from ..paper_index import search_clause
         clause,search_args=search_clause(query)
         search_sql=' AND ('+clause+')'
+    if category:
+        validate_category_keys([category])
+        search_sql+=' AND p.id IN (SELECT paper_id FROM paper_categories WHERE category_key=?)'
+        search_args.append(category.casefold())
+    if topic_id:
+        search_sql+=" AND p.id IN (SELECT pt.paper_id FROM paper_topics pt JOIN topics t ON t.id=pt.topic_id WHERE t.id=? AND t.status='active')"
+        search_args.append(topic_id)
     if type=='history':
         clause='s.user_id=? AND s.seen=1 AND s.last_browsed_at IS NOT NULL'
         args=[user['id']]

@@ -158,6 +158,7 @@ async def _run_job(name, fetch_limit, task, redo_id=None, force_conf=False, auth
                 from .pipeline import author_runs
                 if retry_missing_authors:
                     execute('DELETE FROM author_query_failures')
+                    execute("DELETE FROM paper_task_failures WHERE task='author_impact'")
                 author_token=author_generation if author_generation is not None else author_runs.begin()
             function = jobs[name]
             if redo_id:

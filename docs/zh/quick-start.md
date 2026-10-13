@@ -26,10 +26,12 @@ mkdir papers-go
 cd papers-go
 ```
 
+以下配置用于新安装。已有站点更新时请保留自己的 Compose 配置、原项目名和全部挂载，只更新镜像。
+
 在这个目录中新建 `docker-compose.yml`，完整复制以下内容：
 
 ```yaml
-name: shualunwen
+name: papers-go
 services:
   app:
     image: roger1001/papers-go:latest

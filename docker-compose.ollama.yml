@@ -1,3 +1,4 @@
+# Keep the historical project name so existing deployments retain their containers and model volume.
 name: shualunwen
 services:
   ollama:

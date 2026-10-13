@@ -69,7 +69,7 @@ The optional Ollama service binds to host address `127.0.0.1`, port `11434`, by 
 | `.secrets/` | `/secrets` | Credential encryption key |
 | Ollama named volume | `/root/.ollama` | Downloaded models |
 
-Keep the `shualunwen` project name and these mounts when continuing an existing deployment. Use one worker for each data directory.
+Retain the actual project name and all mounts when updating or restoring an existing site. The repository split Compose files preserve the historical default project name so pulling new source does not create a separate deployment or select an empty model volume. New-install examples use papers-go, but existing sites do not need to rename their projects. Use one worker for each data directory.
 
 ## Check service health
 

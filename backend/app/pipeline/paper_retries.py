@@ -34,7 +34,7 @@ def initialize(db):
 
 def eligible(task, paper_id='id'):
     # Identifiers are internal constants, never request input.
-    assert task in FEATURES
+    assert task in FEATURES or task=='author_impact'
     return f"{paper_id} NOT IN (SELECT paper_id FROM paper_task_failures WHERE task='{task}' AND failures>={LIMIT})"
 
 
@@ -56,11 +56,12 @@ def succeeded(task, paper_ids):
 
 def failed(task, paper_ids):
     # Missing setup is not a failed processing round. This check never calls a model.
-    from ..llm import runtime as models
-    from ..task_readiness import DEPENDENCIES
-    from .. import prompts
-    if any(models.configuration_issue(f) for f in DEPENDENCIES[task]):return
-    if task=='assess_quality' and not prompts.skill_enabled('quality'):return
+    if task!='author_impact':
+        from ..llm import runtime as models
+        from ..task_readiness import DEPENDENCIES
+        from .. import prompts
+        if any(models.configuration_issue(f) for f in DEPENDENCIES[task]):return
+        if task=='assess_quality' and not prompts.skill_enabled('quality'):return
     with connect() as db:
         db.executemany('''INSERT INTO paper_task_failures(task,paper_id,failures,updated_at)
             SELECT ?,id,1,? FROM papers WHERE id=?

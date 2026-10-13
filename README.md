@@ -95,12 +95,14 @@ cd Papers-Go
 
 以下选择一种方式，将完整配置保存为部署目录中的 `docker-compose.yml`，然后复制对应的启动命令即可。`.env` 可选，模型连接和模型选择在管理后台配置。
 
+**以下配置用于新安装。已有站点请继续使用自己的 Compose 配置，只更新镜像，保留原项目名、端口、数据目录、密钥目录和模型卷。不要直接用新安装示例覆盖现有配置。**
+
 ### 方式一：单独部署系统
 
 适合连接已有的 Ollama 或使用云端 API。包含网站和后台工作进程。
 
 ```yaml
-name: shualunwen
+name: papers-go
 services:
   app:
     image: roger1001/papers-go:latest
@@ -173,7 +175,7 @@ docker compose up -d
 需要可供 Docker 使用的 NVIDIA GPU。Linux 主机需要 NVIDIA Container Toolkit，GPU 配置需要 Docker Compose 2.30 或更新版本。此方式只启动 Ollama 服务，不预设或自动下载模型。
 
 ```yaml
-name: shualunwen
+name: papers-go
 services:
   app:
     image: roger1001/papers-go:latest
@@ -259,14 +261,14 @@ docker compose up -d
 
 访问 [http://localhost:8000](http://localhost:8000)。后台 Ollama 连接地址填写 `http://ollama:11434`，模型由您在 Ollama 中准备，再到后台获取模型列表并分配给各功能。这里不展开 Ollama 的部署和模型管理，相关说明见 [Ollama 官方文档](https://docs.ollama.com/docker)。
 
-若已下载源码，仓库也提供等价的拆分配置，启动命令为：
+若已下载源码，仓库也提供拆分配置。为兼容已有部署，这些文件保留历史默认项目名，启动命令为：
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.ollama.yml -f docker-compose.gpu.yml pull
 docker compose -f docker-compose.yml -f docker-compose.ollama.yml -f docker-compose.gpu.yml up -d
 ```
 
-若本机的 `11434` 端口已被占用，可以修改 Ollama 的宿主机端口。容器内部连接地址仍为 `http://ollama:11434`。两种部署方式保留相同的项目名、数据目录和模型卷，已有部署升级时不会更换数据库或模型缓存。
+若本机的 `11434` 端口已被占用，可以修改 Ollama 的宿主机端口。容器内部连接地址仍为 `http://ollama:11434`。切换部署方式或更新时，请保留当前实际使用的项目名、数据目录和模型卷。修改项目名会创建另一套容器，并可能改用空的模型卷。
 
 ### 对外提供访问
 
@@ -312,7 +314,7 @@ docker compose -f docker-compose.yml -f docker-compose.ollama.yml -f docker-comp
 
 - `data/`：SQLite 数据库、用户数据、精读缓存和运行时技能文件。
 - `.secrets/`：模型凭据的加密密钥，Docker 内路径为 `/secrets/model-keys.key`。
-- Docker 命名卷 `shualunwen_ollama`：已下载的 Ollama 模型。
+- Docker 命名卷：已下载的 Ollama 模型。本页新安装示例使用 `papers-go_ollama`，已有部署继续使用原模型卷，实际名称取决于 Compose 项目名。
 
 后台填写的 API Key 加密保存，页面不会回显。备份必须同时保留 `data/` 和 `.secrets/`，缺少密钥文件将无法解密原有模型凭据。`.env`、数据库和密钥不要提交到公开仓库。
 
@@ -321,6 +323,8 @@ docker compose -f docker-compose.yml -f docker-compose.ollama.yml -f docker-comp
 <a name="updates-and-backups" id="updates-and-backups"></a>
 
 ## 更新与备份
+
+已有站点不需要为了名称统一而迁移容器或数据。继续使用当前的 Compose 配置和项目名。如果安装时使用了 `-p` 参数或 `COMPOSE_PROJECT_NAME`，后续更新、备份和恢复也要沿用同一设置。
 
 更新前先备份。停止网站和工作进程后，将完整的 `data/`、`.secrets/`、`docker-compose.yml` 和可选的 `.env` 复制到安全的备份目录，再启动服务。保留 `data/` 下的所有文件，不能只复制 SQLite 主文件。原数据库需要配套的密钥才能解密模型凭据。使用拆分配置时，一并备份 `docker-compose.ollama.yml` 和 `docker-compose.gpu.yml`。
 

@@ -24,10 +24,12 @@ mkdir papers-go
 cd papers-go
 ```
 
+This configuration is for a new installation. When updating an existing site, retain its current Compose configuration, project name, and mounts, and update only the images.
+
 Create `docker-compose.yml` there and copy the complete configuration:
 
 ```yaml
-name: shualunwen
+name: papers-go
 services:
   app:
     image: roger1001/papers-go:latest

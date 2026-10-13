@@ -4,7 +4,7 @@
 
 Papers-Go brings paper ingestion, personal recommendations, assisted reading, and research trends into a self-hosted web application. Use it from a desktop or mobile browser, with local models, cloud services, or a mixture of both.
 
-This manual describes repository version **1.1.0** and follows the workflows of installers, researchers, and administrators.
+This manual describes repository version **1.1.1** and follows the workflows of installers, researchers, and administrators.
 
 ## Start here
 

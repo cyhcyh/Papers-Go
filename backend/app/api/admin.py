@@ -357,10 +357,10 @@ def source_snapshot():
     from ..pipeline import paper_retries
     retries=paper_retries.snapshot()
     return [{**found.get(name,{'name':name,'last_run':None,'last_success':None,'added':0,'error':None,'running':0}),
-             **({'continuation':author_continuation} if name=='author_impact' else {}),
+             **({'continuation':author_continuation,'author_retries':retries.get(name)} if name=='author_impact' else {}),
              'progress':json.loads(found.get(name,{}).get('progress') or '{}'),
              'missing_configuration':missing_configuration([name],model_config,switches),
-             'retries':retries.get(name),'redo':redo.get(name),'enabled':switches.get(name,True), 'queued':name in state['queued'], 'stopped':found.get(name,{}).get('error')==STOP_MESSAGE} for name in jobs]
+             'retries':retries.get(name) if name!='author_impact' else None,'redo':redo.get(name),'enabled':switches.get(name,True), 'queued':name in state['queued'], 'stopped':found.get(name,{}).get('error')==STOP_MESSAGE} for name in jobs]
 
 
 from ..pipeline.redo import RedoOptions, preview as redo_preview, create_run, state as redo_state, validate_resume

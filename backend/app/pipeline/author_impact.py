@@ -15,6 +15,7 @@ from ..config import settings, now, today
 from ..db import connect, rows, one, execute, dumps
 from ..logs import event
 from ..pipeline_control import check_cancelled
+from . import paper_retries
 
 API = 'https://api.openalex.org'
 HIGHLY_CITED_CAP = 20  # A small auxiliary signal saturates after sustained influence.
@@ -75,6 +76,11 @@ def title_text(text):
     text = re.sub(r'\\(?:mathrm|mathbf|mathit|mathsf|mathcal|textrm|text|operatorname)\s*\{([^{}]*)\}', r'\1', text)
     # Formatting markers are not part of a paper's title; keep formula identifiers.
     return re.sub(r'[^\w\s]', ' ', text, flags=re.UNICODE).replace('_', ' ')
+
+
+def literal_title(text):
+    # Quote words separately: keep normal matching breadth without Boolean syntax.
+    return ' '.join('"'+word+'"' for word in title_text(text).split())
 
 
 def same_name(local, remote):
@@ -167,19 +173,30 @@ class OpenAlex:
         self.client = client
         self.name_candidates = {}
 
-    async def get(self, path, **params):
-        check_cancelled()
-        await asyncio.sleep(.2)
-        check_cancelled()
-        response = await self.client.get(API+path, params=params)
-        check_cancelled()
-        if response.status_code==429:
-            raise RateLimited('OpenAlex 请求额度暂不可用；已保存进度，下次任务继续')
-        response.raise_for_status()
-        return response.json()
+    async def get(self, path, *, fallback_params=None, **params):
+        for attempt in range(2):
+            check_cancelled()
+            await asyncio.sleep(.2 if attempt==0 else 1)
+            check_cancelled()
+            try:
+                response = await self.client.get(API+path, params=params)
+                check_cancelled()
+                if response.status_code==429:
+                    raise RateLimited('OpenAlex 请求额度暂不可用，已保存进度，下次任务继续')
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPError as error:
+                check_cancelled()
+                status=error.response.status_code if isinstance(error,httpx.HTTPStatusError) else None
+                retryable=status is None or status==408 or status>=500 or (fallback_params is not None and status in (400,422))
+                if attempt or not retryable:
+                    raise
+                if fallback_params is not None:
+                    params={**params,**fallback_params}
 
     async def match(self, paper):
-        data = await self.get('/works', filter='title.search:'+title_text(paper['title']), **{'per-page':20},
+        data = await self.get('/works', filter='title.search:'+title_text(paper['title']),
+                              fallback_params={'filter':'title.search:'+literal_title(paper['title'])}, **{'per-page':20},
                               select='id,title,publication_year,authorships,locations,doi')
         candidates = [(w, confirmed_authors(paper,w)) for w in data.get('results', [])]
         candidates = [(w,a) for w,a in candidates if a and re.fullmatch(r'https://openalex\.org/W\d+',w.get('id') or '')]
@@ -220,7 +237,8 @@ class OpenAlex:
         if not candidates:
             return None
         data = await self.get('/works',filter='authorships.author.id:'+'|'.join(sorted(candidates)),
-                              search=title_text(paper['title']),per_page=100,select='id,authorships')
+                              search=title_text(paper['title']),fallback_params={'search':literal_title(paper['title'])},
+                              per_page=100,select='id,authorships')
         evidence = {}
         for work in data.get('results',[]):
             authors = [a.get('author',{}) for a in work.get('authorships',[])]
@@ -253,7 +271,7 @@ def pending_papers(config, *, count=False):
     year = date.fromisoformat(today()).year
     success_cutoff=(datetime.now(timezone.utc)-timedelta(days=config['cache_days'])).isoformat()
     retry_cutoff=(datetime.now(timezone.utc)-timedelta(days=7)).isoformat()
-    columns = 'COUNT(*) AS pending' if count else 'p.id,p.title,p.authors,p.published,p.arxiv_id,m.work_id,m.status'
+    columns = 'COUNT(*) AS pending' if count else "p.id,p.title,p.authors,p.published,p.arxiv_id,m.work_id,m.status,(SELECT failures FROM paper_task_failures WHERE task='author_impact' AND paper_id=p.id) AS failures"
     stale='''(c.author_id IS NULL OR c.fetched_at<CASE WHEN c.validated=1 THEN :success ELSE :retry END
               OR c.first_year!=:first_year OR c.last_year!=:last_year)'''
     blocked='(f.failure_count>=:failure_limit OR f.next_retry_at>:stamp)'
@@ -265,6 +283,7 @@ def pending_papers(config, *, count=False):
         OR (m.status='matched' AND EXISTS(SELECT 1 FROM paper_author_links l
             LEFT JOIN author_impact_cache c ON c.author_id=l.author_id WHERE l.paper_id=p.id
             AND '''+stale+''')))
+        AND '''+paper_retries.eligible('author_impact','p.id')+'''
         AND (NOT EXISTS(SELECT 1 FROM paper_author_links l JOIN author_query_failures f ON f.author_id=l.author_id
                 WHERE l.paper_id=p.id AND '''+blocked+''')
             OR EXISTS(SELECT 1 FROM paper_author_links l
@@ -310,6 +329,7 @@ async def author_impact():
     pending=pending_papers(config)
     headers={'Authorization':'Bearer '+config['openalex_api_key']} if config['openalex_api_key'] else {}
     started=time.monotonic();processed=matched=authors_updated=0
+    last_error=None
     remaining=pending_papers(config,count=True)
     def publish(final=False):
         nonlocal remaining
@@ -387,6 +407,7 @@ async def author_impact():
                     apply_impact(paper['id'])
                     execute("UPDATE author_work_matches SET status='matched',checked_at=? WHERE paper_id=?",(now(),paper['id']))
                     matched+=1
+                if paper['failures']:paper_retries.succeeded('author_impact',[paper['id']])
                 processed+=1
                 publish()
             except RateLimited:
@@ -394,18 +415,27 @@ async def author_impact():
                 event('author','作者数据达到接口额度，保留进度',level='warning',job='author_impact',processed=processed,matched=matched,authors_updated=authors_updated)
                 raise
             except (httpx.HTTPError,ValueError,KeyError,TypeError) as error:
+                check_cancelled()
                 # Keep the unfinished paper eligible for the one delayed retry.
                 execute("INSERT INTO author_work_matches(paper_id,status,checked_at) VALUES(?,'error',NULL) ON CONFLICT(paper_id) DO UPDATE SET status='error',checked_at=NULL",(paper['id'],))
-                publish(final=True)
                 response=getattr(error,'response',None)
                 status=response.status_code if response is not None else None
                 request=getattr(error,'request',None)
                 event('author','作者数据查询失败',level='warning',job='author_impact',paper_id=paper['id'],
                       error_type=type(error).__name__,service='OpenAlex',author_id=current_author,
                       status_code=status,path=request.url.path if request is not None else None)
-                if status:
-                    raise RuntimeError(f'OpenAlex 作者数据请求失败（HTTP {status}），请检查 OpenAlex 服务和认证配置') from error
-                raise
+                if status in (401,403):
+                    publish(final=True)
+                    raise RuntimeError(f'OpenAlex 作者数据请求失败（HTTP {status}），请检查 OpenAlex 认证配置') from error
+                paper_retries.failed('author_impact',[paper['id']])
+                message=f'OpenAlex 作者数据请求失败（HTTP {status}）' if status else 'OpenAlex 作者数据请求失败'
+                last_error=RuntimeError(message+'，已跳过失败论文并保留结果') if isinstance(error,httpx.HTTPError) else error
+                processed+=1
+                publish()
     publish(final=True)
+    # Continue other papers first, then use the existing single delayed retry.
+    # Paused papers are excluded, so they cannot create five-second retry loops.
+    if last_error and remaining:
+        raise last_error
     event('author','作者影响力缓存更新完成',job='author_impact',processed=processed,matched=matched,authors_updated=authors_updated)
     return processed

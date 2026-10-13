@@ -11,6 +11,8 @@ docker compose ps
 docker compose logs --tail=100 app worker
 ```
 
+Keep the current project name, Compose configuration, and all mounts when updating or restoring. Do not overwrite them with a new-install example. If installation used `-p` or `COMPOSE_PROJECT_NAME`, retain the same setting in the commands below.
+
 For Ollama / GPU deployments, retain the same `-f` file arguments used during installation for all commands below.
 
 ## Back up

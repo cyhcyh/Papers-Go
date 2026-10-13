@@ -16,9 +16,9 @@ Papers-Go is a self-hosted application for discovering, recommending, and readin
 - [中文后台手册](zh/admin.md) · [Administration](en/admin.md)
 - [在 GitHub 阅读和发布文档](zh/publishing.md) · [Read and publish on GitHub](en/publishing.md)
 
-文档对应仓库版本 **1.1.0**。界面截图使用现有的中文界面；英文文档保留中文菜单名，便于对照操作。英文文档不表示应用界面已经支持英文切换。
+文档对应仓库版本 **1.1.1**。界面截图使用现有的中文界面；英文文档保留中文菜单名，便于对照操作。英文文档不表示应用界面已经支持英文切换。
 
-These documents describe repository version **1.1.0**. Screenshots show the existing Chinese interface. The English guide includes Chinese menu names so readers can locate each control; it does not imply that the application UI has an English language switch.
+These documents describe repository version **1.1.1**. Screenshots show the existing Chinese interface. The English guide includes Chinese menu names so readers can locate each control; it does not imply that the application UI has an English language switch.
 
 目前可以直接在 GitHub 中阅读全部 Markdown 文档。[发布指南](zh/publishing.md)说明如何将相同内容制作成 VitePress 双语站点并发布到 GitHub Pages。
 
