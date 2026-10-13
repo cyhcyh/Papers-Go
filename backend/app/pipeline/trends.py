@@ -23,7 +23,29 @@ def trend_stats():
             db.execute('DELETE FROM trend_dirty WHERE date=? AND topic_id=? AND revision=?',(item['date'],item['topic_id'],item['revision']))
 
 
-def trend_data(user_id, window='day'):
+def author_movements(user_id, *, offset=0, limit=5, count_total=True):
+    """Paginate the existing exact-name, seven-day author scope without model calls."""
+    from ..paper_index import ready
+    if ready():
+        followed='SELECT DISTINCT n.name FROM user_paper_state s JOIN paper_names n ON n.paper_id=s.paper_id WHERE s.user_id=? AND s.saved=1'
+        membership='p.id IN (SELECT paper_id FROM paper_names WHERE name IN ('+followed+'))'
+    else:
+        followed='SELECT DISTINCT a.value AS name FROM user_paper_state s JOIN papers saved ON saved.id=s.paper_id JOIN json_each(saved.authors) a WHERE s.user_id=? AND s.saved=1'
+        membership='EXISTS(SELECT 1 FROM json_each(p.authors) a WHERE a.value IN ('+followed+'))'
+    cutoff=(date.fromisoformat(today())-timedelta(days=6)).isoformat()
+    where=membership+' AND p.published>=? AND p.published<=?'
+    args=(user_id,cutoff,today())
+    with connect() as db:
+        db.execute('BEGIN')
+        authors={r['name'] for r in db.execute(followed,(user_id,))}
+        if not authors:return {'items':[],'total':0,'offset':offset,'limit':limit}
+        total=db.execute('SELECT COUNT(*) n FROM papers p WHERE '+where,args).fetchone()['n'] if count_total else 0
+        candidates=db.execute('SELECT p.id,p.title,p.authors,p.published,p.primary_category,p.venue FROM papers p WHERE '+where+' ORDER BY p.published DESC,p.id DESC LIMIT ? OFFSET ?',(*args,limit,offset)).fetchall()
+        items=[{**dict(p),'authors':sorted(authors.intersection(json.loads(p['authors'])))} for p in candidates]
+    return {'items':items,'total':total,'offset':offset,'limit':limit}
+
+
+def trend_data(user_id, window='day', *, include_movements=True):
     from .direction_trends import scoped_papers, coverage, trend_context, topic_distribution
     from .arxiv_daily import latest
     context=trend_context(user_id);batch=context['batch'];papers=scoped_papers(user_id,context=context);info=coverage(user_id,context=context,papers=papers)
@@ -34,17 +56,8 @@ def trend_data(user_id, window='day'):
         for topic in topics:topic['share']=round(topic['count']/len(ids)*100,1)
     # Author updates retain their independent seven-day scope, including papers
     # outside today's announcement and outside the selected research directions.
-    saved=rows('SELECT p.authors FROM papers p JOIN user_paper_state s ON s.paper_id=p.id WHERE s.user_id=? AND s.saved=1',(user_id,))
-    authors={a for p in saved for a in json.loads(p['authors'])}
-    if authors:
-        from ..paper_index import ready
-        placeholders=','.join('?' for _ in authors)
-        membership='p.id IN (SELECT paper_id FROM paper_names WHERE name IN ('+placeholders+'))' if ready() else 'EXISTS(SELECT 1 FROM json_each(p.authors) a WHERE a.value IN ('+placeholders+'))'
-        cutoff=(date.fromisoformat(today())-timedelta(days=6)).isoformat()
-        candidates=rows('SELECT p.id,p.title,p.authors,p.published FROM papers p WHERE '+membership+' AND p.published>=? AND p.published<=? ORDER BY p.published DESC,p.id DESC LIMIT 30',[*sorted(authors),cutoff,today()])
-        for p in candidates:
-            names=authors.intersection(json.loads(p['authors']))
-            if names:movements.append({**p,'authors':sorted(names)})
+    if include_movements:
+        movements=[{key:p[key] for key in ('id','title','authors','published')} for p in author_movements(user_id,limit=30,count_total=False)['items']]
     direction=trend_summary(user_id,context=context,papers=papers)
     report={'content':direction['summary'],'created_at':direction['created_at'],'items':direction['items'],'period':direction['period']} if direction['items'] else None
     return {'topics':topics,'movements':movements[:30],'report':report,'status':direction['status'],'window':'day','coverage':info}

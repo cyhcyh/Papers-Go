@@ -8,6 +8,7 @@ import {SourcePicker} from './SourcePicker'
 import {disciplines,disciplineLabel,sourceDiscipline,sourceMatches,topicMatches,selectAll} from '../disciplines'
 import {TreeDrawer} from './TreeDrawer'
 import {Pagination} from './ui/Pagination'
+import {SearchSelect} from './ui/SearchSelect'
 import {useViewportPanel} from '../hooks/useViewportPanel'
 import {notifyTopicsChanged} from '../hooks/useTopicRefresh'
 import {MathText} from './MathText'
@@ -82,6 +83,6 @@ export function TopicManager({topics,reload,loading,error}:{topics:Topic[]|null;
   <label>方向描述（英文）<textarea value={editing.description||''} maxLength={1200} rows={3} onChange={e=>setEditing(p=>({...p,description:e.target.value}))} placeholder="简述这个方向研究的问题与范围" required/></label>
   <fieldset className="topic-source-fields"><legend>所属主类</legend><p className="hint">按学科选择，可同时勾选多个 arXiv 分类和会议。</p><SourcePicker sources={catalog.data||[]} selected={editing.category_keys||[]} onChange={keys=>setEditing(p=>({...p,category_keys:keys}))}/></fieldset>
   <button className="primary" disabled={busy||!editing.discipline||!editing.category_keys?.length}>保存</button></form></Modal>}
- {merging&&<Modal title={'合并「'+merging.name_zh+'」'} onClose={()=>setMerging(null)}><p className="muted">关联论文、所属主类和用户的主题选择将迁入目标主题。</p><select className="full" value={target} onChange={e=>setTarget(e.target.value)}><option value="">选择目标主题</option>{all.filter(t=>t.status==='active'&&t.id!==merging.id).map(t=><option key={t.id} value={t.id}>{t.name_zh}</option>)}</select><button className="primary" disabled={!target||busy} onClick={()=>run(async()=>{await api('/admin/topics/'+merging.id+'/merge','POST',{target_id:Number(target)});setMerging(null);if(topicId===merging.id)setTopicId(Number(target))},'主题已合并')}>确认合并</button></Modal>}
+ {merging&&<Modal title={'合并「'+merging.name_zh+'」'} onClose={()=>setMerging(null)}><p className="muted">关联论文、所属主类和用户的主题选择将迁入目标主题。</p><SearchSelect label="目标主题" placeholder="选择目标主题" searchPlaceholder="搜索主题名称、英文名或编号" options={all.filter(t=>t.status==='active'&&t.id!==merging.id).map(t=>({value:String(t.id),label:t.name_zh||t.name_en,description:t.name_en!==t.name_zh?t.name_en:undefined,keywords:[t.id,t.standard_code].join(' ')}))} selected={target?[target]:[]} onChange={values=>setTarget(values[0]||'')}/><button className="primary" disabled={!target||busy} onClick={()=>run(async()=>{await api('/admin/topics/'+merging.id+'/merge','POST',{target_id:Number(target)});setMerging(null);if(topicId===merging.id)setTopicId(Number(target))},'主题已合并')}>确认合并</button></Modal>}
  </div>
 }

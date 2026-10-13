@@ -21,10 +21,10 @@ export function ConnectionIcon({kind}:{kind:Connection['kind']}){
  return <span className={'mc-connection-icon '+kind}><Icon size={26} strokeWidth={1.8}/></span>
 }
 
-export function SettingsDialog({title,description,icon,children,footer,onClose,busy=false,error}:{title:string;description?:string;icon?:ReactNode;children:ReactNode;footer?:ReactNode;onClose:()=>void;busy?:boolean;error?:string}){
+export function SettingsDialog({title,description,icon,children,footer,onClose,busy=false,error,className=''}:{title:string;description?:string;icon?:ReactNode;children:ReactNode;footer?:ReactNode;onClose:()=>void;busy?:boolean;error?:string;className?:string}){
  const dialog=useRef<HTMLDialogElement>(null)
  useEffect(()=>{const element=dialog.current;element?.showModal();return()=>element?.close()},[])
- return <dialog ref={dialog} className="mc-dialog" aria-label={title} onCancel={event=>{event.preventDefault();if(!busy)onClose()}} onClick={event=>{if(event.target===event.currentTarget&&!busy)onClose()}}>
+ return <dialog ref={dialog} className={'mc-dialog'+(className?' '+className:'')} aria-label={title} onCancel={event=>{event.preventDefault();if(!busy)onClose()}} onClick={event=>{if(event.target===event.currentTarget&&!busy)onClose()}}>
   <header className="mc-dialog-header"><div className="mc-dialog-heading">{icon}<div><h2>{title}</h2>{description&&<p>{description}</p>}</div></div><button type="button" className="icon-button" aria-label="关闭弹窗" disabled={busy} onClick={onClose}><X size={20}/></button></header>
   <div className="mc-dialog-body">{children}</div>{error&&<p role="alert" className="mc-dialog-error error-text">{error}</p>}{footer&&<footer className="mc-dialog-footer">{footer}</footer>}
  </dialog>

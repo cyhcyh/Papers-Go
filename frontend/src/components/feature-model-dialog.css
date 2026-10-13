@@ -1,0 +1,46 @@
+/* Feature assignment only: other model settings dialogs keep their existing layout. */
+.mc-feature-dialog{width:660px;max-height:calc(100dvh - 48px);border-radius:16px}
+.mc-feature-dialog .mc-dialog-header{padding:20px 22px;background:var(--card)}
+.mc-feature-dialog .mc-dialog-heading{gap:12px}
+.mc-feature-dialog .mc-dialog-heading h2{font-size:17px}
+.mc-feature-dialog .mc-dialog-heading p{margin-top:4px}
+.mc-feature-dialog .mc-dialog-feature-icon{width:40px;height:40px;border-radius:11px}
+.mc-feature-dialog .mc-dialog-body{padding:18px 22px 20px}
+.mc-feature-dialog .mc-feature-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:4px;margin:0 0 14px;border:0;border-radius:9px;background:var(--soft)}
+.mc-feature-dialog .mc-feature-tabs button{justify-content:center;border:0;border-radius:7px;padding:9px 12px;background:transparent;color:var(--secondary);font-size:13px}
+.mc-feature-dialog .mc-feature-tabs button:hover:not(:disabled){background:color-mix(in srgb,var(--mc-blue) 5%,var(--card))}
+.mc-feature-dialog .mc-feature-tabs button[aria-selected=true]{background:var(--mc-blue);color:#fff;box-shadow:0 2px 5px #3568ff12}
+.mc-feature-dialog .mc-feature-tabs button[aria-selected=true]:hover:not(:disabled){background:var(--mc-blue)}
+.mc-feature-dialog .mc-current-selection{flex-direction:row;align-items:baseline;gap:12px;padding:11px 13px;margin-bottom:20px;border:0;border-radius:9px;background:var(--mc-blue-soft)}
+.mc-feature-dialog .mc-current-selection>span{flex-shrink:0;white-space:nowrap;color:var(--mc-blue);font-size:11px}
+.mc-feature-dialog .mc-current-selection strong{min-width:0;font-size:12px;line-height:1.7}
+.mc-feature-dialog .mc-model-selection-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mc-feature-dialog .mc-model-selection-heading h3{font-size:15px}
+.mc-feature-dialog .mc-model-selection-heading .mc-requirement{font-size:11px;padding:3px 7px;border-radius:6px}
+.mc-feature-dialog .mc-picker-fields{grid-template-columns:minmax(0,2fr) minmax(0,3fr);align-items:start;gap:16px;margin-top:16px}
+.mc-feature-dialog .mc-picker-fields .search-select-label{font-size:13px;line-height:1.5;margin:0 0 8px}
+.mc-feature-dialog .mc-picker-fields .search-select-control{height:44px;min-height:44px;padding:7px 9px 7px 11px;background:var(--card)}
+.mc-feature-dialog .search-select-leading{display:inline-flex;align-items:center;flex-shrink:0;margin-right:3px;color:var(--mc-blue)}
+.mc-feature-dialog .mc-picker-fields .search-select-option-text>strong{font-size:13px;font-weight:400;line-height:1.6}
+.mc-feature-dialog .mc-picker-fields .search-select-option-text>small{font-size:11px;line-height:1.5}
+.mc-feature-dialog .mc-picker-fields .search-select-option.is-selected{background:var(--mc-blue-soft);color:var(--mc-blue)}
+.mc-feature-dialog .mc-model-catalog-hint{display:block;margin:10px 0 0;font-size:11px;line-height:1.7}
+.mc-feature-dialog .model-choice-group>.mc-check-row{margin-top:16px;padding:0;background:transparent;border:0;gap:9px;font-size:13px}
+.mc-feature-dialog .model-choice-group>.mc-check-row small{margin-top:3px}
+.mc-feature-dialog .mc-dialog-footer{padding:15px 22px;background:var(--card)}
+.mc-feature-dialog .mc-dialog-footer>button{min-height:38px;border-radius:9px;padding:8px 14px;font-size:13px}
+.mc-feature-dialog .mc-dialog-footer>.primary{background:var(--mc-blue);border-color:var(--mc-blue);transition:filter .15s ease}
+.mc-feature-dialog .mc-dialog-footer>.primary:hover:not(:disabled){background:var(--mc-blue);filter:brightness(.96)}
+@media(max-width:600px){
+ .mc-feature-dialog{max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);border-radius:15px}
+ .mc-feature-dialog .mc-dialog-header{padding:18px 17px}
+ .mc-feature-dialog .mc-dialog-heading{gap:10px}
+ .mc-feature-dialog .mc-dialog-heading h2{font-size:16px}
+ .mc-feature-dialog .mc-dialog-body{padding:16px 17px 18px}
+ .mc-feature-dialog .mc-current-selection{flex-wrap:wrap;gap:3px 9px;margin-bottom:18px}
+ .mc-feature-dialog .mc-current-selection strong{flex-basis:100%}
+ .mc-feature-dialog .mc-picker-fields{grid-template-columns:minmax(0,1fr);gap:17px}
+ .mc-feature-dialog .mc-dialog-footer{padding:13px 17px;gap:9px;flex-wrap:wrap}
+ .mc-feature-dialog .mc-dialog-footer>.mc-footer-hint{width:100%;margin:0}
+ .mc-feature-dialog .mc-dialog-footer>button{flex:1;min-height:40px}
+}

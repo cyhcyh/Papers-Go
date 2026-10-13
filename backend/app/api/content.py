@@ -11,7 +11,7 @@ from ..interest.profile import current
 from ..interest.online import update_profile, restore_part
 from ..pipeline.score import feed, scored_papers, serialize_paper, balanced_papers, ranked_page, browse_page
 from ..pipeline.read import request_card, card_response, card_events
-from ..pipeline.trends import trend_data, trend_summary
+from ..pipeline.trends import trend_data, trend_summary, author_movements
 from ..pipeline.direction_trends import request_update
 from ..catalog import directory, validate_category_keys
 from ..paper_lifecycle import extend_life, social_state
@@ -216,20 +216,23 @@ def browse(topic_id: int | None=None,category: str | None=None,range: Literal['t
 
 
 @router.get('/library')
-def library(type: Literal['like','save','history']='save',limit: int=Query(20,ge=1,le=100),cursor: str=Query('',max_length=200),query: str=Query('',max_length=200),category: str | None=None,topic_id: int | None=Query(None,ge=1),user=Depends(current_user)):
+def library(type: Literal['like','save','history']='save',limit: int=Query(20,ge=1,le=100),cursor: str=Query('',max_length=200),query: str=Query('',max_length=200),category: str | None=None,topic_id: int | None=Query(None,ge=1),categories: list[str]=Query(default=[]),topic_ids: list[int]=Query(default=[]),user=Depends(current_user)):
     query=query.strip()
     search_sql='';search_args=[]
     if query:
         from ..paper_index import search_clause
         clause,search_args=search_clause(query)
         search_sql=' AND ('+clause+')'
-    if category:
-        validate_category_keys([category])
-        search_sql+=' AND p.id IN (SELECT paper_id FROM paper_categories WHERE category_key=?)'
-        search_args.append(category.casefold())
-    if topic_id:
-        search_sql+=" AND p.id IN (SELECT pt.paper_id FROM paper_topics pt JOIN topics t ON t.id=pt.topic_id WHERE t.id=? AND t.status='active')"
-        search_args.append(topic_id)
+    keys=list(dict.fromkeys([*categories,*([category] if category else [])]))
+    ids=list(dict.fromkeys([*topic_ids,*([topic_id] if topic_id else [])]))
+    if keys:
+        validate_category_keys(keys)
+        search_sql+=' AND p.id IN (SELECT paper_id FROM paper_categories WHERE category_key IN ('+','.join('?' for _ in keys)+'))'
+        search_args.extend(key.casefold() for key in keys)
+    if ids:
+        if any(ident<=0 for ident in ids):raise HTTPException(422,'主题编号必须为正整数')
+        search_sql+=" AND p.id IN (SELECT pt.paper_id FROM paper_topics pt JOIN topics t ON t.id=pt.topic_id WHERE t.id IN ("+','.join('?' for _ in ids)+") AND t.status='active')"
+        search_args.extend(ids)
     if type=='history':
         clause='s.user_id=? AND s.seen=1 AND s.last_browsed_at IS NOT NULL'
         args=[user['id']]
@@ -258,9 +261,20 @@ def library(type: Literal['like','save','history']='save',limit: int=Query(20,ge
     return {'items':[ranked.get(p['id'],serialize_paper(p)) for p in papers]}
 
 
+@router.get('/library/topics')
+def library_topics(user=Depends(current_user)):
+    # Metadata only, loaded on opening the filter. Includes active unassigned topics.
+    return rows("SELECT id,name_zh,name_en,standard_system,standard_code FROM topics WHERE status='active' ORDER BY name_zh,id")
+
+
+@router.get('/trends/author-movements')
+def trend_author_movements(offset: int=Query(0,ge=0),limit: int=Query(5,ge=1,le=50),user=Depends(current_user)):
+    return author_movements(user['id'],offset=offset,limit=limit)
+
+
 @router.get('/trends')
-def trends(background_tasks: BackgroundTasks,window: Literal['day','week','month']='day',user=Depends(current_user)):
-    result=trend_data(user['id'],window)
+def trends(background_tasks: BackgroundTasks,window: Literal['day','week','month']='day',include_movements: bool=True,user=Depends(current_user)):
+    result=trend_data(user['id'],window,include_movements=include_movements)
     request_update(user['id'],needed=result['status'] in ('pending','updating'))
     return result
 

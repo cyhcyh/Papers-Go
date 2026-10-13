@@ -8,7 +8,10 @@
 .library-filter-chips>button>span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:260px}
 .library-filter-chips>button>svg{flex-shrink:0}
 .library-filter-chips>.library-filter-clear{background:transparent;color:var(--muted)}
-.library-filter-dialog{position:fixed;inset:var(--filter-top,80px) auto auto var(--filter-left,12px);margin:0;width:340px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);padding:0;border:1px solid var(--border);border-radius:16px;background:var(--card);color:var(--text);box-shadow:0 16px 48px #0f172a24;overflow:auto}
+.library-filter-dialog{position:fixed;inset:var(--filter-top,80px) auto auto var(--filter-left,12px);margin:0;width:400px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);padding:0;border:1px solid var(--border);border-radius:16px;background:var(--card);color:var(--text);box-shadow:0 16px 48px #0f172a24;overflow:hidden}
+.library-filter-dialog[open]{display:flex;flex-direction:column}
+.library-filter-dialog>form{display:flex;flex-direction:column;min-height:0}
+.library-filter-header,.library-filter-footer{flex-shrink:0}
 .library-filter-dialog::backdrop{background:transparent}
 .library-filter-handle{display:none}
 .library-filter-header{display:flex;align-items:center;gap:11px;padding:21px 21px 18px}
@@ -17,15 +20,11 @@
 .library-filter-header p{font-size:11px;color:var(--muted);margin:4px 0 0}
 .library-filter-close{margin-left:auto;align-self:flex-start;padding:4px;border:0;background:transparent;color:var(--muted);border-radius:7px}
 .library-filter-close:hover{background:var(--soft)}
-.library-filter-fields{padding:0 21px 23px;display:grid;gap:16px}
-.library-filter-fields>label{display:block;font-size:12px;font-weight:500;color:var(--secondary);margin:0}
-.library-filter-select{position:relative;margin-top:8px}
-.library-filter-select select{width:100%;margin:0;padding:11px 32px 11px 12px;appearance:none;background:var(--soft);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;font-weight:400;text-overflow:ellipsis}
-.library-filter-select select:disabled{color:var(--muted);opacity:.75}
-.library-filter-select>svg{position:absolute;right:11px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted)}
+.library-filter-fields{padding:0 21px 23px;display:grid;gap:18px;overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
 .library-filter-footer{display:flex;gap:10px;padding:16px 21px;border-top:1px solid var(--border)}
 .library-filter-footer>button{flex:1;gap:7px;font-size:13px;padding:10px;background:var(--soft);border:1px solid var(--border);border-radius:9px;color:var(--secondary)}
-.library-filter-footer>.library-filter-apply{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 3px 9px color-mix(in srgb,var(--accent) 15%,transparent)}
+.library-filter-footer>.library-filter-apply{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 3px 9px color-mix(in srgb,var(--accent) 15%,transparent);transition:filter .15s ease}
+.library-filter-footer>.library-filter-apply:hover:not(:disabled){background:var(--accent);color:#fff;filter:brightness(.96)}
 .library-filter-error{font-size:12px;color:var(--secondary);margin:0}
 .library-filter-error button{font-size:12px;padding:3px 6px}
 @media(max-width:600px){
@@ -36,8 +35,6 @@
  .library-filter-header h2{font-size:18px}
  .library-filter-header p{font-size:12px}
  .library-filter-fields{padding:0 23px 28px;gap:20px}
- .library-filter-fields>label{font-size:13px}
- .library-filter-select select{font-size:15px;padding-top:13px;padding-bottom:13px}
  .library-filter-footer{padding:19px 23px calc(23px + env(safe-area-inset-bottom));gap:12px}
  .library-filter-footer>button{font-size:14px;padding:13px}
 }
