@@ -4,7 +4,8 @@ from datetime import date, timedelta
 from ..config import today, now
 from ..db import connect, rows, one, execute, dumps
 from ..interest.profile import current
-from .direction_trends import trend_summary, ensure_direction_trend
+from .direction_trends import trend_summary, ensure_direction_trend, cached
+from ..logs import event
 
 
 def trend_stats():
@@ -59,18 +60,24 @@ def trend_data(user_id, window='day', *, include_movements=True):
     if include_movements:
         movements=[{key:p[key] for key in ('id','title','authors','published')} for p in author_movements(user_id,limit=30,count_total=False)['items']]
     direction=trend_summary(user_id,context=context,papers=papers)
-    report={'content':direction['summary'],'created_at':direction['created_at'],'items':direction['items'],'period':direction['period']} if direction['items'] else None
+    report={'content':direction['summary'],'created_at':direction['created_at'],'items':direction['items'],'period':direction['period'],'papers':direction['papers']} if direction['items'] else None
     return {'topics':topics,'movements':movements[:30],'report':report,'status':direction['status'],'window':'day','coverage':info}
 
 
 async def trend_report():
     # One shared result per announcement/scope, with no weekly archives/notices.
-    completed=0
+    completed=0;skipped=0;failed={}
     cutoff=(date.fromisoformat(today())-timedelta(days=14)).isoformat()
     requested={r['user_id']:r['requested_at'] for r in rows('SELECT * FROM arxiv_trend_requests')}
     users=rows('SELECT u.id FROM users u WHERE disabled=0 AND (EXISTS(SELECT 1 FROM arxiv_trend_requests r WHERE r.user_id=u.id) OR EXISTS(SELECT 1 FROM interactions i WHERE i.user_id=u.id AND i.created_at>=?) OR EXISTS(SELECT 1 FROM chat_sessions c WHERE c.user_id=u.id AND c.created_at>=?) OR EXISTS(SELECT 1 FROM interest_profile p WHERE p.user_id=u.id AND p.created_at>=?))',(cutoff,cutoff,cutoff))
     for user in users:
         if await ensure_direction_trend(user['id']):completed+=1
+        else:
+            value=cached(user['id'])
+            if value and value['error']:failed[value['audience']]=value['error']
+            else:skipped+=1
         if user['id'] in requested:
             execute('DELETE FROM arxiv_trend_requests WHERE user_id=? AND requested_at=?',(user['id'],requested[user['id']]))
+    event('trend','趋势整理结果',job='trend_report',level='error' if failed else 'info',completed=completed,skipped=skipped,failed=len(failed))
+    if failed:raise ValueError(f'本轮完成 {completed} 份趋势，{len(failed)} 份未完成。'+next(iter(failed.values())))
     return completed

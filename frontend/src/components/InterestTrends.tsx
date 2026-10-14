@@ -13,6 +13,6 @@ export function InterestTrends(){
  useEffect(()=>{const update=()=>result.reload();window.addEventListener('profile-change',update);return()=>window.removeEventListener('profile-change',update)},[result.reload])
  useEffect(()=>{if(!auth)return;const timer=setInterval(result.reload,['pending','updating'].includes(result.data?.status||'')?5000:60000);return()=>clearInterval(timer)},[auth,result.data?.status,result.reload])
  const overview=result.data?.items.find(item=>item.kind==='daily_overview')
- const placeholder=result.error||result.data?.status==='error'?'每日趋势暂时无法生成。':result.data?.status==='empty'?'设置兴趣方向后，查看每日研究进展。':'等待后台整理最新一期 arXiv 新稿…'
+ const placeholder=result.error||result.data?.status==='error'?'本期趋势内容暂时不可用，请稍后查看。':result.data?.status==='empty'?'设置兴趣方向后，查看每日研究进展。':'正在整理本期研究进展…'
  return <CardSurface className="panel interest-trends daily-trends"><div className="section-heading"><h3><TrendingUp size={16}/>每日趋势</h3></div>{auth?<>{result.data?.period.through&&<small className="hint daily-trends-date">arXiv 公告日 {result.data.period.through}</small>}{overview?<div className="direction-short daily-overview"><TrendContent text={overview.short_summary} compact/></div>:<p>{placeholder}</p>}<NavLink className="trend-more" to="/trends">查看趋势分析 <ArrowUpRight size={14}/></NavLink>{result.data?.status==='updating'&&<small>正在更新…</small>}</>:<button className="trend-login" onClick={()=>requireLogin('查看每日趋势')}>登录后查看每日趋势</button>}</CardSurface>
 }

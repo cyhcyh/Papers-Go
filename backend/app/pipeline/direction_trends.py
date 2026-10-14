@@ -14,6 +14,7 @@ from ..interest.profile import active_entries, current
 from ..interest.scope import category_weights
 from ..source_catalog import registry
 from ..llm import runtime as models
+from ..logs import event
 from ..standard_topics import words, catalog
 from . import arxiv_daily
 
@@ -21,10 +22,11 @@ _generating=set()
 _tasks={}
 _owners={}
 _PROMPT_KEYS=('trend_report','trend_rewrite')
-_FORMAT_REVISION='arxiv-daily-v8'
+_FORMAT_REVISION='arxiv-daily-v12'
 DAILY_DIRECTION='每日趋势'
-FULL_MAX=1200
+FULL_MAX=3600
 SHORT_MAX=400
+MAX_EVIDENCE=16
 PROGRESS_LABELS={'breakthrough':'突破性进展','substantial':'重要推进','incremental':'阶段性推进','uncertain':'进展程度待判断'}
 
 
@@ -38,6 +40,73 @@ def _current_prompt_revision(db=None):
 
 
 def _text(value):return value.replace('\r\n','\n').replace('\r','\n').strip()
+
+
+def _prompt(key):
+    # Keep administrator prose intact while adding the renderer's output contract.
+    return prompts.get(key)+'\n\n'+prompts.DEFAULTS[key]['output_format']
+
+
+def validate_citations(summary,ids):
+    references=re.findall(r'\[[^\]\r\n]+\]\(paper:(\d+)\)',summary)
+    if summary.count('](paper:')!=len(references) or any(int(pid) not in ids for pid in references):
+        raise ValueError('趋势论文引用须来自本方向已列出的证据')
+
+
+def evidence_scope(group,shared=None):
+    allowed={p['id']:p for p in [*group['papers'],*group.get('reference_papers',[])]}
+    current_ids={p['id'] for p in group['papers']}
+    if shared is not None and group.get('kind')!='daily_overview':
+        # Reuse only evidence already sent in this request and matched by the
+        # existing direction rules, including papers sampled for the overview.
+        matched=group.get('_matched_ids',())
+        for pid,paper in shared.items():
+            if pid in matched:
+                allowed[pid]=paper
+                if paper.get('evidence_kind')=='current':current_ids.add(pid)
+    return allowed,current_ids
+
+
+def validate_evidence(group,ids,shared=None):
+    records,current_ids=evidence_scope(group,shared)
+    allowed=set(records)
+    reason=None;invalid=[]
+    if not isinstance(ids,list) or any(type(i)!=int for i in ids):
+        reason='invalid_type';message='论文证据编号须为整数列表'
+    elif not 1<=len(ids)<=MAX_EVIDENCE:
+        reason='invalid_count';message=f'论文证据须为1～{MAX_EVIDENCE}篇'
+    elif len(set(ids))!=len(ids):
+        reason='duplicate_ids';message='论文证据编号重复'
+    elif invalid:=sorted(set(ids)-allowed):
+        reason='outside_group';message='论文证据引用了未分配给本方向的论文'
+    elif not current_ids.intersection(ids):
+        reason='missing_current';message='论文证据须包含本方向的当日论文'
+    if reason:
+        event('trend','趋势论文证据校验未通过',level='error',job='trend_report',direction=group['direction'],
+              reason=reason,evidence_count=len(ids) if isinstance(ids,list) else None,
+              max_evidence=MAX_EVIDENCE,invalid_ids=invalid[:MAX_EVIDENCE],allowed_ids=sorted(allowed))
+        raise ValueError(group['direction']+'：'+message)
+
+
+def report_schema(groups,shared=None):
+    variants=[]
+    for group in groups:
+        allowed=sorted(evidence_scope(group,shared)[0])
+        paper_ids={'type':'array','items':{'type':'integer','enum':allowed},'maxItems':MAX_EVIDENCE,'uniqueItems':True}
+        daily=group.get('kind')=='daily_overview'
+        focus={'type':'array','items':{'type':'string'},'maxItems':0}
+        topics={'type':'array','items':{'type':'object'},'maxItems':0}
+        if daily:
+            topics={'type':'array','maxItems':3,'items':{'type':'object','properties':{
+                'name':{'type':'string','minLength':1,'maxLength':60},'progress':{'enum':list(PROGRESS_LABELS)},
+                'paper_ids':{**paper_ids,'minItems':1}},'required':['name','progress','paper_ids'],'additionalProperties':False}}
+        variants.append({'type':'object','properties':{
+            'direction':{'enum':[group['direction']]},'summary':{'enum':['']} if daily else {'type':'string'},
+            'short_summary':{'enum':['']},'focus_directions':focus,'daily_topics':topics,'paper_ids':paper_ids,'insufficient':{'type':'boolean'}},
+            'required':['direction','summary','short_summary','paper_ids','focus_directions','daily_topics','insufficient'],
+            'additionalProperties':False})
+    return {'type':'object','properties':{'items':{'type':'array','minItems':len(groups),'maxItems':len(groups),'items':{'oneOf':variants}}},
+            'required':['items'],'additionalProperties':False}
 
 
 def valid_text(summary,short,*,daily=False):
@@ -213,11 +282,16 @@ def input_tokens(text):
 def model_payload(materials,groups=None):
     """Send complete evidence once, even when several interests share a paper."""
     output=[];papers={}
+    shared={p['id']:p for g in materials['groups'] for p in [*g['papers'],*g.get('reference_papers',[])]}
     for group in materials['groups'] if groups is None else groups:
-        item={k:v for k,v in group.items() if k not in ('papers','reference_papers')}
-        item['paper_ids']=[p['id'] for p in group['papers']]
-        item['reference_ids']=[p['id'] for p in group.get('reference_papers',[])]
-        for paper in [*group['papers'],*group.get('reference_papers',[])]:papers[paper['id']]=paper
+        allowed,current_ids=evidence_scope(group,shared)
+        item={k:v for k,v in group.items() if k not in ('papers','reference_papers','_matched_ids')}
+        item['paper_ids']=[pid for pid in allowed if pid in current_ids]
+        item['reference_ids']=[pid for pid in allowed if pid not in current_ids]
+        item['allowed_paper_ids']=list(dict.fromkeys([*item['paper_ids'],*item['reference_ids']]))
+        for paper in allowed.values():
+            entry=papers.setdefault(paper['id'],{**paper,'directions':[]})
+            if group['direction'] not in entry['directions']:entry['directions'].append(group['direction'])
         output.append(item)
     return {'period':materials['period'],'announcement_date':materials['announcement_date'],
             'reference_period':materials['reference_period'],'groups':output,'papers':list(papers.values())}
@@ -282,10 +356,11 @@ def research_materials(profile,structured,window='day',vectors=None):
                 relevant.append((lexical+(paper['quality_score'] or 50)/200,paper))
             relevant.sort(key=lambda v:(-v[0],-(v[1]['published']>=week_start) if reference else 0,v[1]['id']))
             return [p for _,p in relevant]
-        relevant=ranked(papers)
-        group={'direction':label,'papers':[],'reference_papers':[],'matched_count':len(relevant)}
+        relevant=ranked(papers);recent=ranked(historical,True)
+        group={'direction':label,'papers':[],'reference_papers':[],'matched_count':len(relevant),
+               '_matched_ids':{p['id'] for p in [*relevant,*recent]}}
         if topic:group.update(topic=topic['name_en'],description=topic.get('description','')[:300])
-        buckets.append(group);candidates.append(relevant[:12]);references.append(ranked(historical,True)[:4])
+        buckets.append(group);candidates.append(relevant[:12]);references.append(recent[:4])
     # Reuse the prioritized interest evidence in this same model request. Broad
     # category popularity is only a fallback when no specific interest was set.
     focus=[]
@@ -319,8 +394,11 @@ def research_materials(profile,structured,window='day',vectors=None):
                                    'through':(datetime.fromisoformat(bounds['through'])-timedelta(days=1)).date().isoformat() if batch else None}}
     # Reserve part of the per-run total for a single formatting correction.
     budget=settings().trend_input_tokens-2000
-    prompt_cost=input_tokens(prompts.get('trend_report'))
-    def fits():return prompt_cost+input_tokens(dumps(model_payload(materials)))<=budget-256
+    prompt_cost=input_tokens(_prompt('trend_report'))
+    def fits():
+        payload=model_payload(materials)
+        schema=report_schema([g for g in buckets if g['papers']],{p['id']:p for p in payload['papers']})
+        return prompt_cost+input_tokens(dumps(payload))+input_tokens(dumps(schema))<=budget-256
     def add(group,p,reference=False):
         item={k:p[k] for k in ('id','title','published','abstract')}
         item['evidence_kind']='reference' if reference else 'current'
@@ -377,17 +455,11 @@ async def _generate(user_id,window='day',force=False):
         materials=await asyncio.to_thread(research_materials,profile,structured)
         groups=materials['groups'];pending=[g for g in groups if g['papers']];results={};evidence=[]
         if pending:
-            schema={'type':'object','properties':{'items':{'type':'array','items':{'type':'object','properties':{
-                'direction':{'enum':[g['direction'] for g in pending]},'summary':{'type':'string'},'short_summary':{'type':'string'},
-                'paper_ids':{'type':'array','items':{'type':'integer'}},'focus_directions':{'type':'array','items':{'type':'string'}},'insufficient':{'type':'boolean'},
-                'daily_topics':{'type':'array','maxItems':3,'items':{'type':'object','properties':{
-                    'name':{'type':'string','minLength':1,'maxLength':60},'progress':{'enum':list(PROGRESS_LABELS)},
-                    'paper_ids':{'type':'array','items':{'type':'integer'},'minItems':1,'maxItems':8}},
-                    'required':['name','progress','paper_ids'],'additionalProperties':False}}},
-                'required':['direction','summary','short_summary','paper_ids','focus_directions','daily_topics','insufficient'],'additionalProperties':False}}},'required':['items'],'additionalProperties':False}
             payload=model_payload(materials,pending)
-            messages=[{'role':'system','content':prompts.get('trend_report')},{'role':'user','content':dumps(payload)}]
-            used_tokens=sum(input_tokens(m['content']) for m in messages)
+            shared={p['id']:p for p in payload['papers']}
+            schema=report_schema(pending,shared)
+            messages=[{'role':'system','content':_prompt('trend_report')},{'role':'user','content':dumps(payload)}]
+            used_tokens=sum(input_tokens(m['content']) for m in messages)+input_tokens(dumps(schema))
             if used_tokens>settings().trend_input_tokens:raise ValueError('趋势输入超过总预算')
             result=await models.complete('trend_report',messages,json_mode=True,schema=schema)
             seen=set();drafts={};repairs=[]
@@ -396,17 +468,19 @@ async def _generate(user_id,window='day',force=False):
                 if not group or label in seen:raise ValueError('方向名称不正确或重复')
                 seen.add(label)
                 if item.get('insufficient'):continue
-                allowed={p['id']:p for p in [*group['papers'],*group['reference_papers']]};ids=item.get('paper_ids',[])
-                current_ids={p['id'] for p in group['papers']}
-                if not isinstance(ids,list) or not 1<=len(ids)<=8 or any(type(i)!=int or i not in allowed for i in ids) or len(set(ids))!=len(ids) or not current_ids.intersection(ids):
-                    raise ValueError('趋势证据须包含本方向的当日论文，且只能引用所给材料')
+                ids=item.get('paper_ids',[])
+                current_ids=evidence_scope(group,shared)[1]
+                validate_evidence(group,ids,shared)
                 summary=_text(item.get('summary',''));short=_text(item.get('short_summary',''))
                 daily=group.get('kind')=='daily_overview'
                 focus_names=[item['name'] for item in group['focus_topics']] if daily else None
-                selected=item.get('focus_directions')
+                selected=item.get('focus_directions',[])
                 if daily:
-                    if not isinstance(selected,list) or not 1<=len(selected)<=3 or any(not isinstance(name,str) or name not in focus_names for name in selected) or len(set(selected))!=len(selected) or selected!=[name for name in focus_names if name in selected]:
+                    # Older administrator prompts may still return this internal
+                    # field. Actual interest coverage comes from verified IDs.
+                    if not isinstance(selected,list) or len(selected)>3 or any(not isinstance(name,str) or name not in focus_names for name in selected) or len(set(selected))!=len(selected) or selected!=[name for name in focus_names if name in selected]:
                         raise ValueError('每日趋势涉及的兴趣条目不正确或顺序不正确')
+                    selected=[focus['name'] for focus in group['focus_topics'] if set(focus['paper_ids']).intersection(ids)]
                     covered=set()
                     for focus in group['focus_topics']:
                         if focus['name'] not in selected:continue
@@ -414,7 +488,7 @@ async def _generate(user_id,window='day',force=False):
                         covered.update(focus['paper_ids'])
                     if not set(ids)<=covered:raise ValueError('每日趋势引用了所选兴趣之外的证据')
                     summary='';short=daily_overview_text(item.get('daily_topics'),ids,current_ids)
-                elif selected!=[] or item.get('daily_topics')!=[]:raise ValueError('方向分析不应填写每日兴趣条目或主题概览')
+                elif selected!=[] or item.get('daily_topics',[])!=[]:raise ValueError('方向分析不应填写每日兴趣条目或主题概览')
                 drafts[label]={'summary':summary,'short_summary':short,'ids':ids}
                 if not valid_text(summary,short,daily=daily):
                     repairs.append({'direction':label,'kind':group.get('kind','direction'),'focus_topics':group.get('focus_topics',[]),'summary':summary,'short_summary':short})
@@ -422,7 +496,7 @@ async def _generate(user_id,window='day',force=False):
             if repairs:
                 # At most one formatting call for the whole report, not one per
                 # direction. Never cut scientific conditions to fit this budget.
-                rewrite_messages=[{'role':'system','content':prompts.get('trend_rewrite')},{'role':'user','content':dumps({'items':repairs})}]
+                rewrite_messages=[{'role':'system','content':_prompt('trend_rewrite')},{'role':'user','content':dumps({'items':repairs})}]
                 used_tokens+=sum(input_tokens(m['content']) for m in rewrite_messages)
                 if used_tokens>settings().trend_input_tokens:raise ValueError('趋势格式修正超过本轮总输入预算')
                 rewritten=await models.complete('trend_report',rewrite_messages,json_mode=True)
@@ -438,14 +512,20 @@ async def _generate(user_id,window='day',force=False):
                 draft=drafts[label];summary=draft['summary'];short=draft['short_summary'];ids=draft['ids']
                 daily=group.get('kind')=='daily_overview'
                 if not valid_text(summary,short,daily=daily):raise ValueError('方向解读的长度、分点或主题格式不正确')
-                current_ids={p['id'] for p in group['papers']}
-                allowed={p['id']:p for p in [*group['papers'],*group['reference_papers']]}
+                if not daily:validate_citations(summary,ids)
+                allowed,current_ids=evidence_scope(group,shared)
                 results[label]={'direction':label,'status':'ready','summary':summary,'short_summary':short}
                 evidence.extend({k:allowed[i][k] for k in ('id','title','published')}|{'direction':label,'historical':i not in current_ids} for i in ids)
         for group in groups:
             label=group['direction']
             if label not in results:results[label]={'direction':label,'status':'insufficient','summary':'本期相关证据不足，暂时无法形成可靠的研究分析。','short_summary':'本期相关证据不足。'}
             results[label].update(matched_count=group['matched_count'],sampled_count=group['sampled_count'],reference_count=len(group['reference_papers']),kind=group.get('kind','direction'))
+        if evidence:
+            # One bounded background lookup; rendering cached reports never fetches links.
+            ids=sorted({paper['id'] for paper in evidence})
+            links={p['id']:p['abs_url'] for p in rows('SELECT id,abs_url FROM papers WHERE id IN ('+','.join('?' for _ in ids)+')',ids)}
+            for paper in evidence:
+                if links.get(paper['id']):paper['url']=links[paper['id']]
         with connect() as db:
             db.execute('BEGIN IMMEDIATE')
             account=db.execute('SELECT disabled,auth_epoch FROM users WHERE id=?',(user_id,)).fetchone()
@@ -459,7 +539,9 @@ async def _generate(user_id,window='day',force=False):
         with connect() as db:db.execute('UPDATE direction_trends SET attempted_at=NULL WHERE audience=? AND attempt_token=?',(key,claim))
         raise
     except Exception as error:
-        with connect() as db:db.execute('UPDATE direction_trends SET error=? WHERE audience=? AND attempt_token=?',(models.safe_error(error)[:500],key,claim))
+        message=models.safe_error(error)[:500]
+        with connect() as db:db.execute('UPDATE direction_trends SET error=? WHERE audience=? AND attempt_token=?',(message,key,claim))
+        event('trend','趋势整理未完成',level='error',job='trend_report',user_id=user_id,error_type=type(error).__name__,error=message)
         return False
 
 

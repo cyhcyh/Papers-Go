@@ -16,7 +16,7 @@ from ..db import connect, one, rows, dumps, execute
 from ..logs import event
 
 ARXIV = re.compile(r'(\d{4}\.\d{4,5}|[a-z-]+(?:\.[A-Z]{2})?/\d{7})(?:v(\d+))?')
-HEADERS = {'User-Agent': 'Shualunwen/1.0 (local academic paper discovery)'}
+HEADERS = {'User-Agent': arxiv_client.USER_AGENT}
 
 class SourceRemoved(Exception):pass
 

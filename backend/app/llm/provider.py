@@ -6,7 +6,7 @@ from openai import AsyncOpenAI
 from ..config import settings, now
 from ..db import one, execute, dumps
 from .runtime import current_binding
-from .controls import request_options
+from .controls import capabilities, request_options
 from .thinking import clean_answer
 
 
@@ -77,12 +77,22 @@ class CloudLLM:
         kwargs = {'model': model, 'messages': messages, 'temperature': .3, **options}
         if json_mode:
             kwargs['response_format'] = {'type': 'json_object'}
-        async with self.client() as client:
-            result = await client.chat.completions.create(**kwargs)
-        self.record_usage(model, result.usage)
-        if result.choices[0].finish_reason == 'length':
-            raise ValueError('模型输出达到长度上限，请重试或检查模型配置')
-        content = clean_answer(result.choices[0].message.content or '')
+        binding=current_binding() or {}
+        trend_stream=binding.get('feature')=='trend_report' and (binding.get('control_capabilities') or capabilities(binding)).get('protocol')=='bailian'
+        if trend_stream:
+            # Consume reasoning heartbeats without exposing or buffering them.
+            # The report still publishes only after complete JSON validation.
+            parts=[]
+            async for delta in self.stream(messages,[],json_mode=json_mode):
+                if delta.content:parts.append(delta.content)
+            content=clean_answer(''.join(parts))
+        else:
+            async with self.client() as client:
+                result = await client.chat.completions.create(**kwargs)
+            self.record_usage(model, result.usage)
+            if result.choices[0].finish_reason == 'length':
+                raise ValueError('模型输出达到长度上限，请重试或检查模型配置')
+            content = clean_answer(result.choices[0].message.content or '')
         parsed = parse_json_answer(content) if json_mode else content
         if cache_seconds:
             if json_mode:content=dumps(parsed)
@@ -93,6 +103,7 @@ class CloudLLM:
         model = self.model('chat')
         binding=current_binding()
         reading=binding and binding.get('feature','').startswith('reading_')
+        trend=binding and binding.get('feature')=='trend_report'
         options=request_options(binding)
         if reading:options['max_tokens']=binding['output_tokens']
         if json_mode:options['response_format']={'type':'json_object'}
@@ -114,6 +125,10 @@ class CloudLLM:
                     raise ValueError('精读输出达到长度上限，未完成的内容已保留；可调整思考模式后重试')
                 if reading and not finished:
                     raise ValueError('模型连接中断，精读尚未完成，请重试')
+                if trend and truncated:
+                    raise ValueError('模型输出达到长度上限，请重试或检查模型配置')
+                if trend and not finished:
+                    raise ValueError('模型连接中断，趋势报告尚未完成，请重试')
             finally:
                 self.record_usage(model,usage)
 

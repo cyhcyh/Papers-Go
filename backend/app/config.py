@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     reading_context_tokens: int = Field(default=0, ge=0, le=2000000)
     reading_cloud_concurrency: int = Field(default=2, ge=1, le=8)
     reading_local_concurrency: int = Field(default=1, ge=1, le=4)
-    trend_input_tokens: int = Field(default=8000, ge=4000, le=32000)
+    trend_input_tokens: int = Field(default=20000, ge=4000, le=32000)
     classify_cloud_concurrency: int = Field(default=4, ge=1, le=16)
     brief_cloud_concurrency: int = Field(default=4, ge=1, le=8)
     quality_cloud_concurrency: int = Field(default=2, ge=1, le=8)

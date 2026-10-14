@@ -5,18 +5,38 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from email.utils import formatdate
 
 import httpx
 import pytest
 
 from app import arxiv_client
 from app.config import settings
+from app.versioning import CURRENT_VERSION, REPOSITORY
+
+
+@pytest.mark.parametrize('headers,expected,source', [
+    ({'Retry-After':'120'}, 120., 'Retry-After 秒数'),
+    ({'Retry-After':formatdate(1120, usegmt=True)}, 120., 'Retry-After 日期'),
+    ({'Retry-After':formatdate(4120, usegmt=True), 'Date':formatdate(4000, usegmt=True)}, 120., 'Retry-After 日期'),
+    ({'Retry-After':formatdate(120, usegmt=True), 'Date':formatdate(0, usegmt=True)}, 120., 'Retry-After 日期'),
+    ({'Retry-After':formatdate(1120, usegmt=True), 'Date':'invalid'}, 120., 'Retry-After 日期'),
+    ({'Retry-After':formatdate(900, usegmt=True)}, 0., 'Retry-After 日期'),
+    ({}, 120., '默认退避'),
+    ({'Retry-After':'invalid'}, 120., '默认退避'),
+    ({'Retry-After':'-5'}, 120., '默认退避'),
+    ({'Retry-After':'nan'}, 120., '默认退避'),
+    ({'Retry-After':'inf'}, 120., '默认退避'),
+])
+def test_retry_after_formats_and_clock_skew(monkeypatch, headers, expected, source):
+    monkeypatch.setattr(arxiv_client.time, 'time', lambda: 1000.)
+    assert arxiv_client._retry_delay(httpx.Response(429, headers=headers), 1) == (expected, source)
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('status,headers,expected,next_start',[
-    (429,{'Retry-After':'12'},[1000.,1012.,1024.],1036.),
-    (503,{},[1000.,1030.,1090.],1210.),
+    (429,{'Retry-After':'12'},[1000.,1015.,1030.],1045.),
+    (503,{},[1000.,1060.,1180.],1420.),
 ])
 async def test_retry_after_is_shared_and_retries_are_bounded(client, monkeypatch,status,headers,expected,next_start):
     clock = [1000.]
@@ -25,18 +45,71 @@ async def test_retry_after_is_shared_and_retries_are_bounded(client, monkeypatch
         clock[0] += seconds
     monkeypatch.setattr(arxiv_client.time, 'time', lambda: clock[0])
     monkeypatch.setattr(arxiv_client.asyncio, 'sleep', sleep)
+    monkeypatch.setattr(arxiv_client.random, 'uniform', lambda low, high: 3.)
+    events = []
+    monkeypatch.setattr(arxiv_client, 'event', lambda *args, **detail: events.append((args, detail)))
     def respond(request):
         started.append(clock[0])
         assert request.headers['Connection'] == 'close'
+        assert request.headers['User-Agent'] == f'Papers-Go/{CURRENT_VERSION} (+{REPOSITORY})'
         return httpx.Response(status, headers=headers)
     async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as http:
         with pytest.raises(httpx.HTTPStatusError):
             await arxiv_client.get(http,'https://export.arxiv.org/api/query',retries=2)
         assert started == expected
+        assert events[-1][1]['retry_after'] == headers.get('Retry-After')
+        assert events[-1][1]['wait_source'] == ('Retry-After 秒数' if headers else '默认退避')
+        assert [detail['retry_exhausted'] for _, detail in events] == [False, False, True]
+        assert events[-1][1]['wait_seconds'] == next_start - expected[-1]
         # A different feature reads the cooldown left by the last failed attempt.
         with pytest.raises(httpx.HTTPStatusError):
             await arxiv_client.get(http,'https://arxiv.org/abs/2609.00001')
         assert started[-1] == next_start
+
+
+@pytest.mark.asyncio
+async def test_date_retry_uses_server_clock_and_preserves_other_headers(client, monkeypatch):
+    clock = [1000.]
+    started = []
+    async def sleep(seconds):
+        clock[0] += seconds
+    monkeypatch.setattr(arxiv_client.time, 'time', lambda: clock[0])
+    monkeypatch.setattr(arxiv_client.asyncio, 'sleep', sleep)
+    monkeypatch.setattr(arxiv_client.random, 'uniform', lambda low, high: 2.)
+    def respond(request):
+        started.append(clock[0])
+        assert request.headers['User-Agent'] == arxiv_client.USER_AGENT
+        assert request.headers['Accept'] == 'application/atom+xml'
+        assert request.headers['X-Test'] == 'preserved'
+        return httpx.Response(429, headers={'Date':formatdate(4000, usegmt=True),
+            'Retry-After':formatdate(4060, usegmt=True)}) if len(started) == 1 else httpx.Response(200)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(respond), headers={'Accept':'application/atom+xml'}) as http:
+        response = await arxiv_client.get(http, 'https://export.arxiv.org/api/query', retries=1,
+            headers={'X-Test':'preserved'})
+    assert response.status_code == 200
+    assert started == [1000., 1062.]
+
+
+@pytest.mark.asyncio
+async def test_no_retries_retains_cooldown_for_the_next_request(client, monkeypatch):
+    clock = [1000.]
+    started = []
+    events = []
+    async def sleep(seconds):
+        clock[0] += seconds
+    monkeypatch.setattr(arxiv_client.time, 'time', lambda: clock[0])
+    monkeypatch.setattr(arxiv_client.asyncio, 'sleep', sleep)
+    monkeypatch.setattr(arxiv_client, 'event', lambda *args, **detail: events.append(detail))
+    def respond(request):
+        started.append(clock[0])
+        return httpx.Response(429) if len(started) == 1 else httpx.Response(200)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as http:
+        with pytest.raises(httpx.HTTPStatusError):
+            await arxiv_client.get(http, 'https://export.arxiv.org/api/query')
+        assert started == [1000.]
+        assert events[-1]['retry_exhausted'] is True
+        assert (await arxiv_client.get(http, 'https://rss.arxiv.org/rss/math.CO')).status_code == 200
+    assert started == [1000., 1060.]
 
 
 @pytest.mark.asyncio

@@ -5,6 +5,9 @@
 .trend-markdown .chat-content ul,.trend-markdown .chat-content ol{margin:10px 0;padding-left:22px}
 .trend-markdown .chat-content li+li{margin-top:10px}
 .trend-markdown .chat-content strong{display:inline;font-size:inherit;font-weight:600;color:var(--text)}
+.trend-markdown .chat-content .trend-paper-reference{display:inline;padding:0;margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:var(--accent);font:inherit;line-height:inherit;text-align:inherit;vertical-align:baseline;text-decoration:underline;white-space:normal;overflow-wrap:anywhere;cursor:pointer}
+.trend-markdown .chat-content .trend-paper-reference:hover{background:transparent}
+.trend-markdown .chat-content .trend-paper-reference:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .trend-markdown .chat-content>:first-child{margin-top:0}
 .trend-markdown .chat-content>:last-child{margin-bottom:0}
 .trend-markdown-compact .chat-content p,.trend-markdown-compact .chat-content li{line-height:1.7}

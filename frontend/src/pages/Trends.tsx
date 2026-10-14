@@ -27,7 +27,7 @@ export function Trends() {
    <div className="hotspot-name"><h3 title={t.name_zh}>{t.name_zh}</h3></div>
    <span className="hotspot-count"><strong>{t.count}</strong><span>篇</span></span>
   </ContentCard>)}</div>:<div className="trend-empty"><TrendSignalGraphic/><h3>本期暂无可展示的热点</h3><p>同一主题至少有 3 篇新稿才展示；分类和主题批准完成后，统计会自动更新。</p></div>}
-  <DirectionOverview report={result.data?.report} status={result.data?.status}/>
+  <DirectionOverview report={result.data?.report} status={result.data?.status} onOpenPaper={open}/>
   <AuthorMovements onOpen={open} refreshKey={result.data}/>
  </>}</div>{reading&&<ReadingModal paper={reading} onClose={()=>setReading(null)}/>}</>
 

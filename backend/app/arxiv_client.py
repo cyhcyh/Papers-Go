@@ -2,7 +2,9 @@
 import asyncio
 import errno
 import json
+import math
 import os
+import random
 import time
 from contextlib import asynccontextmanager
 from email.utils import parsedate_to_datetime
@@ -11,8 +13,10 @@ import httpx
 
 from .config import settings
 from .logs import event
+from .versioning import CURRENT_VERSION, REPOSITORY
 
 INTERVAL = 3.2
+USER_AGENT = f'Papers-Go/{CURRENT_VERSION} (+{REPOSITORY})'
 
 
 def _try_lock(handle):
@@ -73,12 +77,22 @@ async def _slot():
 def _retry_delay(response, attempt):
     value = response.headers.get('Retry-After', '')
     try:
-        return max(0., float(value))
+        delay = float(value)
+        if not math.isfinite(delay) or delay < 0:
+            raise ValueError('Invalid Retry-After delay')
+        return delay, 'Retry-After 秒数'
     except ValueError:
-        try:
-            return max(0., parsedate_to_datetime(value).timestamp() - time.time())
-        except (ValueError, TypeError, OverflowError):
-            return 30. * 2 ** attempt
+        pass
+    try:
+        retry_at = parsedate_to_datetime(value).timestamp()
+    except (ValueError, TypeError, OverflowError):
+        return 60. * 2 ** attempt, '默认退避'
+    # Prefer the server's clock so an inaccurate NAS clock cannot shorten a wait.
+    try:
+        reference = parsedate_to_datetime(response.headers.get('Date', '')).timestamp()
+    except (ValueError, TypeError, OverflowError):
+        reference = time.time()
+    return max(0., retry_at - reference), 'Retry-After 日期'
 
 
 async def _get(client, url, *, retries=0, **kwargs):
@@ -91,13 +105,19 @@ async def _get(client, url, *, retries=0, **kwargs):
             state['next_request_at'] = time.time() + INTERVAL
             _save(handle, state)
             response = await client.get(url, **{**kwargs, 'follow_redirects':False,
-                'headers':{**kwargs.get('headers', {}), 'Connection':'close'}})
+                'headers':{**kwargs.get('headers', {}), 'Connection':'close', 'User-Agent':USER_AGENT}})
             if response.status_code in (429, 503):
-                delay = max(INTERVAL, _retry_delay(response, attempt))
+                delay, wait_source = _retry_delay(response, attempt)
+                delay = max(INTERVAL, delay)
+                if wait_source != '默认退避':
+                    delay += random.uniform(2., 5.)
                 state['next_request_at'] = max(state['next_request_at'], time.time() + delay)
                 _save(handle, state)
-                event('source', 'arXiv 要求等待，暂停后重试', job='arxiv_access', status=response.status_code,
-                      wait_seconds=round(delay, 1), attempt=attempt + 1)
+                exhausted = attempt == retries
+                event('source', 'arXiv 重试次数已用完，保留冷却时间' if exhausted else 'arXiv 要求等待，暂停后重试',
+                      job='arxiv_access', status=response.status_code,
+                      retry_after=response.headers.get('Retry-After'), wait_source=wait_source,
+                      wait_seconds=round(delay, 1), attempt=attempt + 1, retry_exhausted=exhausted)
             elif response.status_code == 403:
                 state['blocked_until'] = time.time() + 3600
                 _save(handle, state)

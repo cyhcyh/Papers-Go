@@ -17,11 +17,13 @@
 .direction-overview .trend-markdown .chat-content>ol:has(>.trend-progress){margin:0;padding:0;list-style:none}
 .direction-overview .trend-markdown .trend-progress{margin:0 0 17px;padding:0 0 17px;border-bottom:1px solid var(--card-line);line-height:1.8}
 .direction-overview .trend-markdown .chat-content>ol:last-child>.trend-progress:last-child{padding:0;margin:0;border:0}
-.trend-progress-heading{display:flex;align-items:flex-start;gap:9px;margin:0 0 7px}
-.trend-progress-number{font-size:11px;font-weight:600;color:var(--card-accent);font-variant-numeric:tabular-nums;line-height:1.8;flex-shrink:0;margin-top:2px}
+.direction-overview .trend-progress-heading{display:flex;align-items:flex-start;gap:10px;margin:0 0 8px}
+.direction-overview .trend-progress-number{width:22px;font-size:11px;font-weight:600;color:var(--card-accent);font-variant-numeric:tabular-nums;line-height:1.8;flex-shrink:0;margin-top:2px}
 .direction-overview .trend-markdown h4{font-size:14px;font-weight:600;line-height:1.65;color:var(--text);margin:0}
-.direction-overview .trend-markdown .trend-progress-body{font-size:13px;line-height:1.85;color:var(--content-muted,var(--secondary))}
+.direction-overview .trend-markdown .trend-progress-body{min-width:0;margin-left:32px;font-size:13px;line-height:1.85;color:var(--content-muted,var(--secondary))}
 .direction-overview .trend-markdown .trend-progress-body p{font-size:inherit;line-height:inherit;color:inherit}
+.direction-overview .trend-markdown .trend-progress-body>:first-child{margin-top:0}
+.direction-overview .trend-markdown .trend-progress-body>:last-child{margin-bottom:0}
 .trends-content .direction-overview .direction-updated{font-size:10px;line-height:1.7;padding:12px 0 14px;margin:17px 24px 0;border-top:1px solid var(--card-line);color:var(--secondary)}
 @media(max-width:600px){
  .trends-content .direction-overview{max-height:65dvh;border-radius:15px}

@@ -2,11 +2,12 @@ import json
 from datetime import date,timedelta
 import pytest
 from app import prompts
-from app.config import now,today,settings
-from app.db import execute,dumps,one
+from app.config import now,today,settings,Settings
+from app.db import execute,dumps,one,rows
 from app.interest.profile import put_profile
 from app.pipeline import direction_trends as analysis
 from .test_arxiv_daily import batch,interest_topic,mocked,FULL,daily_topics
+from .conftest import headers
 
 
 def interest(uid,topic):
@@ -33,6 +34,7 @@ def test_complete_abstracts_are_deduplicated_in_the_model_payload(client,account
     execute('UPDATE papers SET abstract=? WHERE id=?',(abstract,ids[0]))
     result=materials(uid);payload=analysis.model_payload(result)
     evidence=next(p for p in payload['papers'] if p['id']==ids[0])
+    assert evidence['directions']==[g['direction'] for g in payload['groups'] if ids[0] in g['allowed_paper_ids']]
     assert evidence['abstract']==abstract and len(abstract)>1100
     assert all('papers' not in group for group in payload['groups'])
     assert len(payload['papers'])==len({p['id'] for p in payload['papers']})
@@ -185,3 +187,285 @@ async def test_natural_overview_keeps_interest_order_and_evidence_coverage(clien
     monkeypatch.setattr(analysis.models,'complete',invalid)
     assert not await analysis._generate(uid,force=True)
     assert analysis.cached(uid)['items_json']==previous and analysis.cached(uid)['error']
+
+
+def test_default_budget_changes_without_overriding_explicit_configuration(monkeypatch):
+    monkeypatch.delenv('TREND_INPUT_TOKENS',raising=False)
+    assert Settings(_env_file=None).trend_input_tokens==20000
+    assert Settings(_env_file=None,trend_input_tokens=8000).trend_input_tokens==8000
+
+
+def test_output_format_rules_preserve_administrator_prompt(monkeypatch):
+    custom='管理员保留的研究编辑要求。'
+    monkeypatch.setattr(prompts,'get',lambda key:custom)
+    for key in ('trend_report','trend_rewrite'):
+        effective=analysis._prompt(key)
+        assert effective.startswith(custom+'\n\n')
+        assert '$...$' in effective and '$$...$$' in effective
+        assert '两个反斜杠' in effective and '(paper:' in effective
+    assert prompts.get('trend_report')==custom
+
+
+def test_larger_budget_keeps_current_and_reference_sample_limits(client,accounts,papers,batch,monkeypatch):
+    topic,ids=interest_topic(batch,'Agent memory',15);uid=accounts[0]['user']['id'];interest(uid,topic)
+    refs=[old_paper(topic,age) for age in range(1,7)]
+    for pid in [*ids,*refs]:
+        execute('UPDATE papers SET abstract=? WHERE id=?',('Agent memory theory and task conditions. '*45,pid))
+    monkeypatch.setattr(settings(),'trend_input_tokens',8000)
+    small=next(g for g in materials(uid)['groups'] if g.get('kind')!='daily_overview')
+    monkeypatch.setattr(settings(),'trend_input_tokens',20000)
+    large=next(g for g in materials(uid)['groups'] if g.get('kind')!='daily_overview')
+    assert len(large['papers'])==12 and len(large['reference_papers'])==4
+    assert len(large['papers'])>len(small['papers'])
+    assert [p['id'] for p in large['papers']][:len(small['papers'])]==[p['id'] for p in small['papers']]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('length',[0,1500,3600])
+async def test_cited_formula_report_keeps_source_urls_and_uses_one_call(client,accounts,papers,batch,monkeypatch,length):
+    topic,ids=interest_topic(batch,'Agent memory',1);uid=accounts[0]['user']['id'];interest(uid,topic)
+    reference=old_paper(topic,3);calls=[]
+    for pid in [ids[0],reference]:
+        execute('UPDATE papers SET abs_url=? WHERE id=?',(f'https://arxiv.org/abs/2610.{pid:05d}',pid))
+    full=f'当日研究明确了方法的适用条件。\n\n1. **主要进展**。在[任务条件研究](paper:{ids[0]})中，复杂度为 $\\Theta(n\\sqrt{{\\log n}})$。与[近期对照](paper:{reference})比较时仍须保留研究条件。'
+    if length:full+=('研究条件与原文一致。'*400)[:length-len(full)]
+    async def complete(feature,messages,**kwargs):
+        payload=json.loads(messages[-1]['content']);calls.append(messages);items=[]
+        for group in payload['groups']:
+            daily=group.get('kind')=='daily_overview';selected=group['paper_ids'][:1] if daily else [ids[0],reference]
+            items.append({'direction':group['direction'],'summary':'' if daily else full,'short_summary':'',
+                'paper_ids':selected,'focus_directions':[t['name'] for t in group.get('focus_topics',[])] if daily else [],
+                'daily_topics':daily_topics(group,selected) if daily else [],'insufficient':False})
+        return json.loads(dumps({'items':items}))
+    monkeypatch.setattr(analysis.models,'complete',complete)
+    assert await analysis.ensure_direction_trend(uid) and len(calls)==1
+    report=analysis.trend_summary(uid)
+    assert report['items'][1]['summary']==full
+    assert all(p['url']==f"https://arxiv.org/abs/2610.{p['id']:05d}" for p in report['papers'])
+    assert {p['id'] for p in report['papers']}=={ids[0],reference}
+    assert '两个反斜杠' in calls[0][0]['content']
+    assert not await analysis.ensure_direction_trend(uid) and len(calls)==1
+    response=client.get('/api/trends?include_movements=false',headers=headers(accounts[0]))
+    assert response.status_code==200
+    data=response.json()
+    assert data['report']['papers']==report['papers']
+    assert data['report']['items'][1]['summary']==full and len(calls)==1
+
+
+def test_full_report_limit_preserves_short_overview_rules():
+    prefix='本期概述。\n\n1. **研究进展**\n'
+    full=prefix+'研'*(3600-len(prefix))
+    assert analysis.FULL_MAX==3600 and analysis.valid_text(full,'')
+    assert not analysis.valid_text(full+'研','')
+    assert not analysis.valid_text(full,'非空短版')
+    assert analysis.valid_text('','今日研究聚焦**具体问题**。',daily=True)
+    assert not analysis.valid_text('','研'*401,daily=True)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('citation',['999999','not-an-id'])
+async def test_bad_inline_reference_keeps_previous_report(client,accounts,papers,batch,monkeypatch,citation):
+    topic,_=interest_topic(batch,'Agent memory',1);uid=accounts[0]['user']['id'];interest(uid,topic)
+    mocked(monkeypatch);assert await analysis.ensure_direction_trend(uid)
+    previous=analysis.cached(uid)['items_json']
+    original=analysis.models.complete
+    async def invalid(*args,**kwargs):
+        result=await original(*args,**kwargs)
+        for item in result['items']:
+            if item['summary']:item['summary']+=f' [未列入证据的论文](paper:{citation})'
+        return result
+    monkeypatch.setattr(analysis.models,'complete',invalid)
+    assert not await analysis._generate(uid,force=True)
+    assert analysis.cached(uid)['items_json']==previous
+    assert '趋势论文引用' in analysis.cached(uid)['error']
+
+
+@pytest.mark.asyncio
+async def test_sixteen_assigned_references_are_accepted_in_one_call(client,accounts,papers,batch,monkeypatch):
+    topic,ids=interest_topic(batch,'Agent memory',12);uid=accounts[0]['user']['id'];interest(uid,topic)
+    refs=[old_paper(topic,age) for age in range(1,5)];calls=[]
+    async def complete(feature,messages,**kwargs):
+        data=json.loads(messages[-1]['content']);calls.append(kwargs['schema']);items=[]
+        for group in data['groups']:
+            daily=group.get('kind')=='daily_overview';evidence=group['allowed_paper_ids']
+            assert evidence==list(dict.fromkeys(group['paper_ids']+group['reference_ids']))
+            items.append({'direction':group['direction'],'summary':'' if daily else FULL,'short_summary':'',
+                          'paper_ids':evidence,'focus_directions':[t['name'] for t in group.get('focus_topics',[])] if daily else [],
+                          'daily_topics':daily_topics(group,evidence) if daily else [],'insufficient':False})
+        return {'items':items}
+    monkeypatch.setattr(analysis.models,'complete',complete)
+    assert await analysis.ensure_direction_trend(uid) and len(calls)==1
+    evidence=analysis.trend_summary(uid)['papers']
+    assert {p['id'] for p in evidence if p['direction']=='Agent memory'}==set(ids+refs)
+    variants=calls[0]['properties']['items']['items']['oneOf']
+    item_schema=variants[0]
+    assert item_schema['properties']['paper_ids']['maxItems']==16
+    assert item_schema['properties']['paper_ids']['uniqueItems'] is True
+    assert item_schema['properties']['daily_topics']['items']['properties']['paper_ids']['maxItems']==16
+    for group in materials(uid)['groups']:
+        branch=next(v['properties'] for v in variants if v['properties']['direction']['enum']==[group['direction']])
+        assert set(branch['paper_ids']['items']['enum'])=={p['id'] for p in group['papers']+group['reference_papers']}
+        if group.get('kind')=='daily_overview':
+            assert branch['focus_directions']['maxItems']==0
+    assert '1～16' in analysis._prompt('trend_report')
+
+
+@pytest.mark.parametrize('ids,reason',[
+    (['1'],'invalid_type'),([True],'invalid_type'),(None,'invalid_type'),
+    (list(range(1,18)),'invalid_count'),([],'invalid_count'),
+    ([1,1],'duplicate_ids'),([1,999],'outside_group'),([2],'missing_current')])
+def test_evidence_failure_logs_the_specific_reason_without_truncation(client,ids,reason):
+    group={'direction':'通用方向','papers':[{'id':1}],'reference_papers':[{'id':2}]}
+    before=list(ids) if isinstance(ids,list) else ids
+    with pytest.raises(ValueError):analysis.validate_evidence(group,ids)
+    assert ids==before
+    detail=json.loads(one("SELECT detail FROM app_logs WHERE message='趋势论文证据校验未通过' ORDER BY id DESC LIMIT 1")['detail'])
+    assert detail['reason']==reason and detail['allowed_ids']==[1,2]
+    assert detail['evidence_count']==(len(ids) if isinstance(ids,list) else None)
+
+
+@pytest.mark.asyncio
+async def test_other_direction_paper_is_rejected_even_when_in_shared_pool(client,accounts,papers,batch,monkeypatch):
+    first,_=interest_topic(batch,'Agent memory',1);second,_=interest_topic(batch,'Retrieval grounding',1);uid=accounts[0]['user']['id']
+    put_profile(uid,'## 核心兴趣（长期）\n- [w:1] Agent memory\n- [w:0.8] Retrieval grounding',
+                {'category_selection':{'categories':[],'topics':{'arxiv:cs.AI':[first,second]}}},'manual')
+    calls=mocked(monkeypatch);assert await analysis.ensure_direction_trend(uid)
+    previous=analysis.cached(uid)['items_json'];original=analysis.models.complete
+    async def invalid(feature,messages,**kwargs):
+        result=await original(feature,messages,**kwargs);payload=json.loads(messages[-1]['content'])
+        foreign=next(g for g in payload['groups'] if g['direction']=='Retrieval grounding')['paper_ids'][0]
+        assert foreign in {p['id'] for p in payload['papers']}
+        next(i for i in result['items'] if i['direction']=='Agent memory')['paper_ids'].append(foreign)
+        return result
+    monkeypatch.setattr(analysis.models,'complete',invalid)
+    assert not await analysis._generate(uid,force=True) and len(calls)==2
+    assert analysis.cached(uid)['items_json']==previous
+    assert '未分配给本方向' in analysis.cached(uid)['error']
+    detail=json.loads(one("SELECT detail FROM app_logs WHERE message='趋势论文证据校验未通过' ORDER BY id DESC LIMIT 1")['detail'])
+    assert detail['reason']=='outside_group' and len(detail['invalid_ids'])==1
+
+
+@pytest.mark.asyncio
+async def test_failed_report_marks_task_failed_but_cached_report_is_a_normal_skip(client,accounts,papers,batch,monkeypatch):
+    import asyncio
+    from app import scheduler
+    from app.pipeline import trends
+    topic,_=interest_topic(batch,'Agent memory',1);uid=accounts[0]['user']['id'];interest(uid,topic)
+    calls=mocked(monkeypatch)
+    assert await trends.trend_report()==1
+    assert await trends.trend_report()==0 and len(calls)==1
+    original=analysis.models.complete
+    async def invalid(*args,**kwargs):
+        result=await original(*args,**kwargs)
+        result['items'][0]['paper_ids']=list(range(1,18))
+        return result
+    monkeypatch.setattr(analysis.models,'complete',invalid)
+    previous=analysis.cached(uid)['items_json']
+    assert not await analysis._generate(uid,force=True)
+    await scheduler._run_job('trend_report',None,asyncio.current_task())
+    status=one("SELECT * FROM source_status WHERE name='trend_report'")
+    assert status['error'] and '1 份未完成' in status['error'] and not status['running']
+    assert status['last_success'] is None
+    assert analysis.cached(uid)['items_json']==previous and len(calls)==2
+    assert one("SELECT message FROM app_logs WHERE kind='task' AND job='trend_report' ORDER BY id DESC LIMIT 1")['message']=='任务失败'
+    detail=json.loads(one("SELECT detail FROM app_logs WHERE message='趋势整理结果' ORDER BY id DESC LIMIT 1")['detail'])
+    assert detail['completed']==0 and detail['failed']==1
+
+
+def test_schema_still_allows_insufficient_evidence_with_empty_arrays():
+    schema=analysis.report_schema([{'direction':'通用方向','papers':[{'id':1}],'reference_papers':[]}])
+    item=schema['properties']['items']['items']['oneOf'][0]
+    assert item['properties']['paper_ids'].get('minItems',0)==0
+    assert item['properties']['daily_topics'].get('minItems',0)==0
+    assert item['properties']['direction']['enum']==['通用方向']
+
+
+def test_shared_evidence_requires_both_direction_match_and_supplied_material():
+    first={'id':1,'evidence_kind':'current'}
+    shared={1:first,2:{'id':2,'evidence_kind':'current'},3:{'id':3,'evidence_kind':'current'},
+            5:{'id':5,'evidence_kind':'reference'}}
+    group={'direction':'通用方向','papers':[first],'reference_papers':[],'_matched_ids':{1,2,4,5}}
+    allowed,current_ids=analysis.evidence_scope(group,shared)
+    assert set(allowed)=={1,2,5} and current_ids=={1,2}
+    analysis.validate_evidence(group,[2,5],shared)
+    for excluded in (3,4):
+        with pytest.raises(ValueError,match='未分配给本方向'):
+            analysis.validate_evidence(group,[1,excluded],shared)
+    with pytest.raises(ValueError,match='当日论文'):
+        analysis.validate_evidence(group,[5],shared)
+    daily={**group,'kind':'daily_overview'}
+    assert set(analysis.evidence_scope(daily,shared)[0])=={1}
+    variant=analysis.report_schema([group],shared)['properties']['items']['items']['oneOf'][0]
+    assert variant['properties']['paper_ids']['items']['enum']==[1,2,5]
+    assert variant['properties']['paper_ids']['maxItems']==16
+
+
+@pytest.mark.asyncio
+async def test_matching_overview_paper_can_support_full_report_without_resampling(client,accounts,papers,batch,monkeypatch):
+    topic,ids=interest_topic(batch,'Agent memory',2);uid=accounts[0]['user']['id'];interest(uid,topic)
+    source=materials(uid);full=next(g for g in source['groups'] if g.get('kind')!='daily_overview')
+    reused=ids[1]
+    full['papers']=[p for p in full['papers'] if p['id']!=reused];full['sampled_count']=len(full['papers'])
+    assert reused in full['_matched_ids']
+    assert reused in {p['id'] for p in source['groups'][0]['papers']}
+    execute('UPDATE papers SET abs_url=? WHERE id=?',('https://arxiv.org/abs/2610.12345',reused))
+    payload=analysis.model_payload(source);assigned=next(g for g in payload['groups'] if g['direction']==full['direction'])
+    assert reused in assigned['allowed_paper_ids'] and reused in assigned['paper_ids']
+    assert all('_matched_ids' not in g for g in payload['groups'])
+    assert len(payload['papers'])==len({p['id'] for g in source['groups'] for p in g['papers']+g['reference_papers']})
+    assert next(p for p in payload['papers'] if p['id']==reused)['directions']==[g['direction'] for g in payload['groups']]
+    shared={p['id']:p for p in payload['papers']}
+    tokens=analysis.input_tokens(analysis._prompt('trend_report'))+analysis.input_tokens(dumps(payload))+analysis.input_tokens(dumps(analysis.report_schema(source['groups'],shared)))
+    assert tokens<=settings().trend_input_tokens-2000
+    monkeypatch.setattr(analysis,'research_materials',lambda *args,**kwargs:source)
+    calls=mocked(monkeypatch);original=analysis.models.complete
+    async def complete(*args,**kwargs):
+        result=await original(*args,**kwargs)
+        item=next(i for i in result['items'] if i['direction']==full['direction'])
+        item.update(paper_ids=[reused],summary=f'当日材料明确了方法的适用范围。\n\n1. **方法与任务条件**：[当日研究](paper:{reused})说明结论取决于所研究的任务条件。')
+        return result
+    monkeypatch.setattr(analysis.models,'complete',complete)
+    assert await analysis.ensure_direction_trend(uid) and len(calls)==1
+    report=analysis.trend_summary(uid)
+    evidence=next(p for p in report['papers'] if p['direction']==full['direction'])
+    assert evidence['id']==reused and evidence['historical'] is False
+    assert evidence['url']=='https://arxiv.org/abs/2610.12345'
+    assert next(i for i in report['items'] if i['direction']==full['direction'])['sampled_count']==1
+    assert reused not in {p['id'] for p in full['papers']}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('legacy_field',[False,True])
+async def test_daily_interest_coverage_is_computed_from_verified_evidence(client,accounts,papers,batch,monkeypatch,legacy_field):
+    first,first_ids=interest_topic(batch,'Agent memory',1);second,_=interest_topic(batch,'Retrieval grounding',1);uid=accounts[0]['user']['id']
+    put_profile(uid,'## 核心兴趣（长期）\n- [w:1] Agent memory\n- [w:0.8] Retrieval grounding',
+                {'category_selection':{'categories':[],'topics':{'arxiv:cs.AI':[first,second]}}},'manual')
+    calls=mocked(monkeypatch);original=analysis.models.complete
+    async def complete(*args,**kwargs):
+        result=await original(*args,**kwargs)
+        daily=result['items'][0]
+        daily['paper_ids']=first_ids
+        daily['daily_topics']=[{'name':'Agent memory','progress':'substantial','paper_ids':first_ids}]
+        if not legacy_field:daily['focus_directions']=[]
+        return result
+    monkeypatch.setattr(analysis.models,'complete',complete)
+    assert await analysis.ensure_direction_trend(uid) and len(calls)==1
+    overview=analysis.trend_summary(uid)['items'][0]['short_summary']
+    assert '**Agent memory**' in overview and 'Retrieval grounding' not in overview
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('topics,accepted',[('omitted',True),([],True),(None,False),([{}],False)])
+async def test_unused_full_report_topics_may_be_omitted_but_never_contain_overview_data(client,accounts,papers,batch,monkeypatch,topics,accepted):
+    topic,_=interest_topic(batch,'Agent memory',1);uid=accounts[0]['user']['id'];interest(uid,topic)
+    calls=mocked(monkeypatch);original=analysis.models.complete
+    async def complete(*args,**kwargs):
+        result=await original(*args,**kwargs)
+        item=next(i for i in result['items'] if i['direction']=='Agent memory')
+        if topics=='omitted':
+            item.pop('daily_topics');item.pop('focus_directions')
+        else:item['daily_topics']=topics
+        return result
+    monkeypatch.setattr(analysis.models,'complete',complete)
+    assert await analysis.ensure_direction_trend(uid) is accepted
+    assert len(calls)==1

@@ -3,13 +3,14 @@ import {TrendingUp} from 'lucide-react'
 import type {DirectionItem} from './InterestTrends'
 import {ContentCard,IconTile} from './PageContentUI'
 import {TrendContent} from './TrendContent'
+import type {PaperReference} from './ChatContent'
 import {formatTime} from './Common'
 import './direction-overview.css'
 
-type Report={items:DirectionItem[];period:{from:string;through:string};created_at:string}
+type Report={items:DirectionItem[];period:{from:string;through:string};created_at:string;papers?:PaperReference[]}
 
 /** Tabs select existing report content only; switching never starts a request. */
-export function DirectionOverview({report,status}:{report:Report|null|undefined;status?:string}){
+export function DirectionOverview({report,status,onOpenPaper}:{report:Report|null|undefined;status?:string;onOpenPaper?:(id:number)=>void}){
  const [direction,setDirection]=useState(''),id=useId(),body=useRef<HTMLDivElement>(null)
  const items=(report?.items||[]).filter(item=>item.kind!=='daily_overview'),index=Math.max(0,items.findIndex(item=>item.direction===direction)),active=items[index]
  const select=(next:number)=>{setDirection(items[next].direction);if(body.current)body.current.scrollTop=0}
@@ -25,10 +26,10 @@ export function DirectionOverview({report,status}:{report:Report|null|undefined;
    {items.length>0&&<>
     <div className="direction-tabs" role="tablist" aria-label="研究方向">{items.map((item,i)=><button type="button" role="tab" id={id+'-tab-'+i} aria-controls={id+'-panel'} aria-selected={i===index} tabIndex={i===index?0:-1} title={item.direction} key={item.direction} onClick={()=>select(i)} onKeyDown={event=>navigate(event,i)}>{item.direction.replace(/\s*[（(].*$/,'').trim()||item.direction}</button>)}</div>
     <div className="direction-scroll" ref={body} role="tabpanel" id={id+'-panel'} aria-labelledby={id+'-tab-'+index} tabIndex={0}>
-     <article className="direction-full" key={active.direction}><TrendContent text={active.summary} analysis/></article>
+     <article className="direction-full" key={active.direction}><TrendContent text={active.summary} analysis references={report.papers?.filter(p=>p.direction===active.direction)} onOpenPaper={onOpenPaper}/></article>
     </div>
    </>}
    <small className="muted direction-updated">更新于 {formatTime(report.created_at)}{status==='updating'?' · 正在更新':''}</small>
-  </>:<p className="muted direction-report-empty">{status==='empty'?'请先在设置中填写您感兴趣的方向。':'等待后台整理最新一期 arXiv 新稿的研究分析…'}</p>}
+  </>:<p className="muted direction-report-empty">{status==='empty'?'请先在设置中填写您感兴趣的方向。':status==='error'?'本期趋势内容暂时不可用，请稍后查看。':'正在整理本期研究进展…'}</p>}
  </ContentCard>
 }
